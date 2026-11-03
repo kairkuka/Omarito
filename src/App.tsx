@@ -220,13 +220,7 @@ function Logo() {
 }
 
 function Actor() {
-  return (
-    <div className="actor" aria-hidden="true">
-      <div className="actor-head"><i /></div>
-      <div className="actor-neck" />
-      <div className="actor-body"><i /><b /></div>
-    </div>
-  )
+  return <img className="actor-image" src="/assets/video-order.png" alt="" aria-hidden="true" />
 }
 
 function MomentScreen({ playing, onToggle, line }: { playing: boolean; onToggle: () => void; line: string }) {

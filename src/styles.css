@@ -75,7 +75,7 @@ button { cursor: pointer; border: 0; }
 .mission-meta { display: flex; justify-content: space-between; color: #8da2d5; font-size: 9px; letter-spacing: .12em; font-weight: 700; }
 .mission-visual { height: 145px; overflow: hidden; position: relative; margin: 14px 0 17px; border-radius: 15px; background: radial-gradient(circle at 60% 35%, #91684d 0 9%, transparent 10%), linear-gradient(135deg, #1c294c, #714530 58%, #101729); }
 .mission-visual::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,.48), transparent 45%, rgba(0,0,0,.22)), repeating-linear-gradient(90deg, transparent 0 38px, rgba(255,255,255,.025) 39px 40px); }
-.mission-visual .actor { transform: scale(.62); transform-origin: bottom; right: 25px; bottom: -12px; }
+.mission-visual .actor-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 24%; }
 .play-badge { position: absolute; left: 16px; bottom: 16px; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.92); color: #0c1532; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
 .mission-card h2 { font-family: 'Fraunces', serif; font-size: 25px; line-height: 1.05; margin: 0 0 10px; }
 .mission-card > p { color: #9ba9c9; font-size: 13px; line-height: 1.45; margin: 0 0 15px; }
@@ -99,6 +99,7 @@ button { cursor: pointer; border: 0; }
 .video-stage { flex: 1; min-height: 360px; position: relative; border-radius: 18px; overflow: hidden; background: linear-gradient(145deg, #292b39 0%, #734b33 40%, #151b2a 100%); box-shadow: 0 20px 35px rgba(0,0,0,.32); }
 .video-stage::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(3,7,23,.02) 45%, rgba(2,7,22,.86)), repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 1px, transparent 1px 55px); }
 .video-noise { position: absolute; width: 220px; height: 220px; top: -50px; left: -55px; border-radius: 50%; background: rgba(255, 202, 124, .22); filter: blur(30px); }
+.video-stage .actor-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 24%; }
 .actor { position: absolute; width: 220px; height: 350px; bottom: -18px; right: 7px; }
 .actor-head { position: absolute; width: 95px; height: 119px; left: 64px; top: 21px; border-radius: 45% 49% 47% 44%; background: linear-gradient(105deg, #d59b70 0 60%, #9c6648 61%); box-shadow: inset 12px 0 20px rgba(255, 209, 170, .18); }
 .actor-head::before { content: ''; position: absolute; width: 102px; height: 50px; top: -9px; left: -4px; border-radius: 60% 60% 30% 20%; background: #181414; transform: rotate(-5deg); }
