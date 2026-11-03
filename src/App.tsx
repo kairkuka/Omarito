@@ -1,343 +1,186 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
-type IconName =
-  | 'arrow'
-  | 'back'
-  | 'book'
-  | 'check'
-  | 'close'
-  | 'keyboard'
-  | 'mic'
-  | 'pause'
-  | 'play'
-  | 'sound'
-  | 'spark'
-  | 'trophy'
+type View = 'welcome' | 'language' | 'personalize' | 'starter' | 'intro' | 'hero' | 'feed' | 'journey' | 'profile' | 'level' | 'lesson'
+type IconName = 'arrow' | 'back' | 'book' | 'check' | 'close' | 'home' | 'journey' | 'keyboard' | 'mic' | 'pause' | 'play' | 'profile' | 'sound' | 'spark' | 'trophy'
 
-type StepKind = 'moment' | 'choice' | 'pattern' | 'listen' | 'speak' | 'selfcheck' | 'complete'
-
-type MissionStep = {
-  eyebrow: string
+type Mission = {
+  id: number
+  level: number
   title: string
-  kind: StepKind
-  prompt?: string
-  actorLine?: string
+  question: string
+  answers: string[]
+  correct: number
+  feedback: string
+  prompt: string
+  example: string
+  checks: string[]
+  followLine: string
+  followChoices: string[]
+  followPrompt: string
 }
 
-const steps: MissionStep[] = [
-  { eyebrow: 'The moment', title: 'Watch what happened', kind: 'moment', actorLine: "I can't believe the train left without us." },
-  { eyebrow: 'Catch the meaning', title: 'What happened?', kind: 'choice', prompt: 'Choose the best answer.' },
-  { eyebrow: 'Catch the meaning', title: 'That’s right', kind: 'choice', prompt: 'They missed the train.' },
-  { eyebrow: 'Catch the meaning', title: 'Look at the clue', kind: 'choice', prompt: 'Listen for “left without us”.' },
-  { eyebrow: 'A useful pattern', title: 'Tell what happened', kind: 'pattern', prompt: 'Use the past simple for a finished event.' },
-  { eyebrow: 'Tune your ear', title: 'Which line do you hear?', kind: 'listen' },
-  { eyebrow: 'Tune your ear', title: 'Exactly', kind: 'listen', prompt: '“The train left without us.”' },
-  { eyebrow: 'Tune your ear', title: 'One more listen', kind: 'listen', prompt: 'Focus on the ending: left without us.' },
-  { eyebrow: 'Make it yours', title: 'Say what happened to you', kind: 'speak', prompt: 'Start with “I missed…”' },
-  { eyebrow: 'Self-check', title: 'How did that feel?', kind: 'selfcheck', prompt: 'Your answer does not need to be perfect.' },
-  { eyebrow: 'Voice the scene', title: 'Repeat the line', kind: 'speak', actorLine: 'The train left without us.' },
-  { eyebrow: 'Voice the scene', title: 'Hear your version', kind: 'speak', prompt: 'Compare your rhythm with the scene.' },
-  { eyebrow: 'Keep it going', title: 'Add one more detail', kind: 'pattern', prompt: 'Tell us what you did next.' },
-  { eyebrow: 'Conversation · A', title: 'Repeat the line', kind: 'speak', actorLine: 'So, what did you do?' },
-  { eyebrow: 'Self-check', title: 'Did you keep it natural?', kind: 'selfcheck' },
-  { eyebrow: 'Conversation · B', title: 'Answer Maya', kind: 'speak', actorLine: 'Did you find another way home?' },
-  { eyebrow: 'Self-check', title: 'Did your answer connect?', kind: 'selfcheck' },
-  { eyebrow: 'Somewhere new', title: 'Confirm a time and place', kind: 'speak', actorLine: "Let's meet at the museum entrance at ten." },
-  { eyebrow: 'Self-check', title: 'Confirm a time and place', kind: 'selfcheck', prompt: "Example: Let’s meet at the museum entrance at ten." },
-  { eyebrow: 'Take it with you', title: 'Mission complete', kind: 'complete', prompt: 'You told a story, reacted and kept a conversation moving.' },
+const levels = [
+  { id: 1, title: 'Find your voice', subtitle: 'Start simple and sound like yourself', color: '#4d91ff' },
+  { id: 2, title: 'Make it happen', subtitle: 'Suggest, choose and arrange plans', color: '#8a67ff' },
+  { id: 3, title: 'Tell your story', subtitle: 'Explain events and clear things up', color: '#ffb847' },
+  { id: 4, title: 'Work it out', subtitle: 'Compare options and decide together', color: '#43d49e' },
 ]
 
-const answers = ['They missed the train', 'They arrived too early', 'They changed their tickets']
+const missions: Mission[] = [
+  { id: 1, level: 1, title: 'More than your name', question: "What comes after ‘At the moment’?", answers: ['I learn to take', 'I learned to take', 'I am learning to take'], correct: 2, feedback: 'The action is happening around now.', prompt: 'Tell a new friend one thing you usually do and one thing you are doing these days.', example: 'I usually read after work. At the moment, I’m learning to cook.', checks: ['Share one routine', 'Add a current activity', 'Use a clear time phrase'], followLine: 'What are you learning at the moment?', followChoices: ['I learn photography.', 'I’m learning photography.'], followPrompt: 'Answer naturally and add one small detail.' },
+  { id: 2, level: 1, title: 'A little more than “yes”', question: 'Which reason did you hear?', answers: ['Everyone has a long week', 'Everyone has seen the film', 'Everyone has a free weekend'], correct: 0, feedback: 'The reason explains why a quiet plan fits.', prompt: 'Would you rather spend a free evening at home or outside? Give your view and a reason.', example: 'I’d rather stay home because I’ve had a long week.', checks: ['State your preference', 'Give one reason', 'Keep it natural'], followLine: 'Would you rather stay in or go out?', followChoices: ['I’d rather stay in.', 'Stay in.'], followPrompt: 'Answer and give a reason in one sentence.' },
+  { id: 3, level: 1, title: 'Keep the door open', question: 'Which words ask for an explanation?', answers: ['What about you?', 'What do you mean by…?', 'I made one yesterday'], correct: 1, feedback: 'That phrase invites the speaker to explain.', prompt: 'A friend says, “I’m trying something creative this weekend.” Ask a question to understand their plan.', example: 'What do you mean by creative? What are you planning?', checks: ['Ask for clarification', 'Sound interested', 'Use a follow-up question'], followLine: 'I’m trying something creative this weekend.', followChoices: ['What do you mean by creative?', 'That is creative.'], followPrompt: 'Keep the conversation open with one more question.' },
+  { id: 4, level: 1, title: 'You left the group', question: 'Which reply invites another person’s view?', answers: ['That is the plan.', 'What about you, Maya?', 'We already decided.'], correct: 1, feedback: 'A direct invitation brings another person in.', prompt: 'Reply to the group: suggest an activity, explain why, and ask what someone else thinks.', example: 'A picnic could be good because we can talk and relax. What about you, Maya?', checks: ['Suggest something', 'Give a reason', 'Invite another person’s view'], followLine: 'A picnic sounds nice, but what if it rains?', followChoices: ['Let’s have an indoor backup.', 'We can ignore the rain.'], followPrompt: 'Suggest a backup activity and explain why it works.' },
+  { id: 5, level: 1, title: 'A new conversation', question: 'Which detail makes the introduction useful?', answers: ['Only your name', 'A relevant personal detail', 'A long list of facts'], correct: 1, feedback: 'One relevant detail helps the conversation continue.', prompt: 'Introduce yourself briefly and recommend an activity Alex might enjoy. Explain your choice.', example: 'I’m Sam. I usually go cycling with a local group. You could join because they welcome new people.', checks: ['Share a relevant detail', 'Recommend an activity', 'Explain why it fits Alex'], followLine: 'That sounds good. Is it okay for someone who is new to it?', followChoices: ['Yes, beginners are welcome.', 'There are different levels.'], followPrompt: 'Reassure Alex, then ask a relevant question.' },
+  { id: 6, level: 2, title: 'Plans are out there', question: 'Which version matches the suggestion?', answers: ['We could meeting', 'We could meet', 'We could met'], correct: 1, feedback: 'Use “could” with the base form: could meet.', prompt: 'Suggest a low-cost activity for two friends who are free tomorrow afternoon. Add a practical detail.', example: 'We could walk by the river at three. It’s free and close to the station.', checks: ['Use could + base verb', 'Add a practical detail', 'Make the plan specific'], followLine: 'We’re both free after lunch. Any ideas?', followChoices: ['We could meet in the park.', 'We could meeting outside.'], followPrompt: 'Suggest a time and an easy meeting point.' },
+  { id: 7, level: 2, title: 'What works for you?', question: 'Which phrase accepts the suggestion?', answers: ["I’d rather", 'Quite late', 'That works for me'], correct: 2, feedback: '“That works for me” accepts a suggestion naturally.', prompt: 'A friend suggests a busy restaurant or a quiet meal at home. State your preference and a reason.', example: 'A quiet meal at home works for me because we can talk.', checks: ['Choose one option', 'Use a preference phrase', 'Give a reason'], followLine: 'How about the new restaurant on Friday?', followChoices: ['That works for me.', 'That works me.'], followPrompt: 'Accept or suggest an alternative.' },
+  { id: 8, level: 2, title: 'Change the plan', question: 'Which day does the speaker suggest instead?', answers: ['Friday', 'Sunday', 'Saturday evening'], correct: 1, feedback: 'The new suggestion is Sunday.', prompt: 'Your friend suggests Friday. You have an appointment. Explain the conflict and suggest Saturday.', example: 'I can’t do Friday because I have an appointment. Could we meet Saturday?', checks: ['Explain the conflict', 'Suggest another time', 'Keep the tone friendly'], followLine: 'Friday is best for me.', followChoices: ['Could we try Saturday instead?', 'Friday is impossible.'], followPrompt: 'Offer one alternative and ask if it works.' },
+  { id: 9, level: 2, title: 'Find the overlap', question: 'Which plan fits both people?', answers: ['Sunday morning', 'Friday evening', 'Monday afternoon'], correct: 0, feedback: 'Sunday morning matches both schedules.', prompt: 'Suggest a meeting time that works for Maya and Alex. Explain why it fits.', example: 'We could meet on Sunday at ten because Alex is free and Maya can come before lunch.', checks: ['Choose Sunday morning', 'Explain how it fits both people', 'Add a clear plan'], followLine: 'The exhibition opens at eleven. Could we meet there?', followChoices: ['Yes, at eleven.', 'Let’s meet earlier nearby.'], followPrompt: 'Write a clear confirmation for the group.' },
+  { id: 10, level: 2, title: 'Plans can change', question: 'Which option handles the weather problem?', answers: ['Ignore the forecast', 'Move the plan indoors', 'Cancel everything'], correct: 1, feedback: 'A revised plan solves the problem without losing the day.', prompt: 'Suggest a revised plan. Explain how it handles the rain.', example: 'We could visit the museum instead. We would stay dry and finish before the rain gets heavy.', checks: ['Acknowledge the weather', 'Offer a workable alternative', 'Explain why it fits'], followLine: 'I’d rather avoid the rain completely. Could we do something indoors?', followChoices: ['Let’s visit the museum.', 'Let’s stay in and cook.'], followPrompt: 'Confirm a time and place.' },
+  { id: 11, level: 3, title: 'Tell me what happened', question: 'What did the speaker do after noticing the mistake?', answers: ['Walked to the next street', 'Called a taxi', 'Went back to work'], correct: 0, feedback: 'The speaker walked to another street and caught the correct bus.', prompt: 'Describe a small thing that happened yesterday. Give a beginning and a next step.', example: 'I missed my bus yesterday, so I walked to the next street and caught another one.', checks: ['Use a past action', 'Add what happened next', 'Keep the order clear'], followLine: 'What happened after you noticed the mistake?', followChoices: ['I walked to the next street.', 'I walk to the next street.'], followPrompt: 'Finish the story with one result.' },
+  { id: 12, level: 3, title: 'Not quite as planned', question: 'Did the speaker bake the cake?', answers: ['Yes, completely', 'No, they bought it', 'No cake was served'], correct: 1, feedback: 'The plan changed, but there was still a cake.', prompt: 'Tell a story about a plan that changed. Include what you intended, what went wrong, and the result.', example: 'I planned to bake a cake, but the oven stopped working, so I bought one nearby.', checks: ['Say what you intended', 'Explain what changed', 'Give the result'], followLine: 'So the original plan did not work?', followChoices: ['No, but I found another solution.', 'No plan.'], followPrompt: 'Explain the new solution clearly.' },
+  { id: 13, level: 3, title: 'Let’s clear that up', question: 'Which detail resolves the confusion?', answers: ['King Street', 'Next to the bridge', 'Let’s meet'], correct: 1, feedback: 'The bridge identifies the intended place.', prompt: 'A friend says “the old station.” Ask whether they mean the train station. Then clarify that you meant the bus station.', example: 'Do you mean the old train station? I meant the bus station next to the bridge.', checks: ['Check what they mean', 'Correct the place', 'Add an identifying detail'], followLine: 'Do you mean the station on King Street?', followChoices: ['No, the one next to the bridge.', 'No station.'], followPrompt: 'Clarify the location in one sentence.' },
+  { id: 14, level: 3, title: 'Pass the message on', question: 'Which details must stay unchanged?', answers: ['Room and time', 'Only the speaker’s name', 'Nothing'], correct: 0, feedback: 'A useful message preserves the key details.', prompt: 'Leave a short voice note for a friend who missed the announcement. Include room, time, and what to bring.', example: 'The workshop is in room nine at ten o’clock. Bring your notebook.', checks: ['Give the room', 'Keep the correct start time', 'Mention the notebook'], followLine: 'Do you mean the workshop is starting later?', followChoices: ['No, just a different room.', 'It still starts at ten.'], followPrompt: 'Repeat the unchanged time and the new room.' },
+  { id: 15, level: 3, title: 'The story is yours', question: 'Which answer explains the whole delay?', answers: ['Only the road closed', 'Problem, action and result', 'Only the arrival'], correct: 1, feedback: 'A clear story connects what happened, what you did, and the result.', prompt: 'Explain the delay in your own words. Include what went wrong, what you did, and the result.', example: 'The road was closed, so my coach took another street. I arrived a little late.', checks: ['Identify the real cause', 'Explain the action taken', 'Connect it to being late'], followLine: 'So, did you have to walk all the way here?', followChoices: ['No, I caught another bus.', 'Only to a different stop.'], followPrompt: 'Clarify which part of the journey you walked.' },
+  { id: 16, level: 4, title: 'A way forward', question: 'What help does the friend offer?', answers: ['Writing the whole presentation', 'Speaking instead of them', 'Practising together after lunch'], correct: 2, feedback: 'The offer is practical and leaves the work with the speaker.', prompt: 'A friend wants to exercise but has little free time. Suggest one practical first step.', example: 'You could take a short walk after lunch three times a week.', checks: ['Suggest one small step', 'Fit the time limit', 'Make it realistic'], followLine: 'I only have twenty minutes most days.', followChoices: ['A short walk could work.', 'You need two hours.'], followPrompt: 'Adapt your suggestion to the time available.' },
+  { id: 17, level: 4, title: 'A different point of view', question: 'Does the speaker reject the entire trip?', answers: ['Yes, completely', 'It is not clear', 'No, only the early start'], correct: 2, feedback: 'The alternative keeps the idea but changes one part.', prompt: 'Your group wants a very expensive venue. Acknowledge the general choice, then explain a concern about cost.', example: 'The venue looks great, but it may be too expensive for everyone.', checks: ['Acknowledge the idea', 'State one concern', 'Keep the discussion open'], followLine: 'So you do not like the venue at all?', followChoices: ['I like it; I’m only worried about the price.', 'No, it is bad.'], followPrompt: 'Clarify what you agree with and what worries you.' },
+  { id: 18, level: 4, title: 'Before a good idea', question: 'Which flat is better for saving money?', answers: ['The one near the station', 'Both cost the same', 'The other flat'], correct: 2, feedback: 'The other flat is cheaper, but travel takes longer.', prompt: 'Compare taking a bus and a taxi. Give a benefit of one and a drawback.', example: 'The bus is cheaper, but it takes longer. A taxi is faster but costs more.', checks: ['Name both options', 'Give one benefit', 'Give one drawback'], followLine: 'Which one would you choose today?', followChoices: ['The bus, because I have time.', 'Both are same.'], followPrompt: 'Choose one option and explain your priority.' },
+  { id: 19, level: 4, title: 'Decide together', question: 'Which response keeps the decision open?', answers: ['This is the only choice', 'Let’s compare the details', 'Choose for me'], correct: 1, feedback: 'Comparing details helps the group decide together.', prompt: 'Recommend a venue for the team celebration. Explain one advantage and one concern.', example: 'The community room is convenient, but we should check whether the price fits our budget.', checks: ['Choose one option', 'Explain a benefit and concern', 'Invite a shared decision'], followLine: 'The room is available, but only from two until four. Is that enough?', followChoices: ['Two hours should work.', 'Could we use the park instead?'], followPrompt: 'Suggest a short schedule for the celebration.' },
+  { id: 20, level: 4, title: 'Our final choice', question: 'Which option respects both time and budget?', answers: ['A nearby free activity', 'An expensive trip across town', 'No activity'], correct: 0, feedback: 'The practical choice fits the visitor’s limits.', prompt: 'Recommend a practical activity. Explain why it fits the visitor’s time and budget.', example: 'You could visit the free exhibition near the station. It fits the three-hour visit and leaves time to return.', checks: ['Suggest a nearby low-cost activity', 'Address the three-hour limit', 'Explain the return plan'], followLine: 'Do you mean the museum across town? I’m worried about getting back.', followChoices: ['No, the exhibition near the station.', 'We can choose something closer.'], followPrompt: 'Clarify the location and suggest when to head back.' },
+]
+
+const languages = [['🇬🇧', 'English'], ['🇪🇸', 'Spanish'], ['🇵🇹', 'Portuguese'], ['🇮🇩', 'Indonesian'], ['🇰🇿', 'Kazakh'], ['🇷🇺', 'Russian']]
+const goals = ['Everyday conversations', 'Work and collaboration', 'Travel and meeting people']
 
 function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
-  const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
-  const paths: Record<IconName, React.ReactNode> = {
-    arrow: <><path d="M5 12h14" /><path d="m14 7 5 5-5 5" /></>,
-    back: <><path d="m15 18-6-6 6-6" /></>,
-    book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5z" /><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z" /></>,
-    check: <path d="m5 12 4 4L19 6" />,
-    close: <><path d="m6 6 12 12" /><path d="m18 6-12 12" /></>,
-    keyboard: <><rect x="3" y="6" width="18" height="12" rx="2" /><path d="M7 10h.01M11 10h.01M15 10h.01M18 10h.01M7 14h.01M10 14h7" /></>,
-    mic: <><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8" /></>,
-    pause: <><path d="M9 5v14" /><path d="M15 5v14" /></>,
-    play: <path d="m8 5 11 7-11 7z" fill="currentColor" stroke="none" />,
-    sound: <><path d="M11 5 6 9H3v6h3l5 4z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M18.5 5.5a9 9 0 0 1 0 13" /></>,
-    spark: <><path d="m12 3 1.2 4.1L17 9l-3.8 1.9L12 15l-1.2-4.1L7 9l3.8-1.9z" /><path d="m19 15 .6 2.1L22 18l-2.4.9L19 21l-.6-2.1L16 18l2.4-.9z" /></>,
-    trophy: <><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z" /><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3" /></>,
+  const p: Record<IconName, ReactNode> = {
+    arrow: <><path d="M5 12h14"/><path d="m14 7 5 5-5 5"/></>, back: <path d="m15 18-6-6 6-6"/>, book: <><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/></>,
+    check: <path d="m5 12 4 4L19 6"/>, close: <><path d="m6 6 12 12"/><path d="m18 6-12 12"/></>, home: <><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></>, journey: <><circle cx="12" cy="12" r="3"/><path d="M3 12c0-5 4-9 9-9M21 12c0 5-4 9-9 9M12 3c5 0 9 4 9 9M12 21c-5 0-9-4-9-9"/></>, keyboard: <><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M18 10h.01M7 14h.01M10 14h7"/></>,
+    mic: <><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/></>, pause: <><path d="M9 5v14"/><path d="M15 5v14"/></>, play: <path d="m8 5 11 7-11 7z" fill="currentColor" stroke="none"/>, profile: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>, sound: <><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></>, spark: <><path d="m12 3 1.2 4.1L17 9l-3.8 1.9L12 15l-1.2-4.1L7 9l3.8-1.9z"/><path d="m19 15 .6 2.1L22 18l-2.4.9L19 21l-.6-2.1L16 18l2.4-.9z"/></>, trophy: <><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></>,
   }
-  return <svg {...common}>{paths[name]}</svg>
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{p[name]}</svg>
 }
 
-function Waveform({ active = false }: { active?: boolean }) {
-  return (
-    <div className={`waveform ${active ? 'active' : ''}`} aria-label="Audio waveform">
-      {Array.from({ length: 34 }, (_, index) => (
-        <i key={index} style={{ height: `${12 + ((index * 17) % 32)}%`, animationDelay: `${index * -28}ms` }} />
-      ))}
-    </div>
-  )
+function Logo() { return <div className="logo"><span><i/><i/><i/></span><strong>OmalinGO</strong></div> }
+
+function Mascot({ large = false, outfit = 0, face = 0 }: { large?: boolean; outfit?: number; face?: number }) {
+  return <div className={`mascot ${large ? 'large' : ''} outfit-${outfit} face-${face}`}><div className="cat-ear left"/><div className="cat-ear right"/><div className="cat-head"><i className="spot one"/><i className="spot two"/><i className="spot three"/><b className="eye left"/><b className="eye right"/><span className="muzzle">ω</span></div><div className="cat-body"><i>O</i></div>{large && <div className="globe">🌍</div>}</div>
 }
+
+function Wave({ active = false }: { active?: boolean }) { return <div className={`wave ${active ? 'active' : ''}`}>{Array.from({ length: 32 }, (_, i) => <i key={i} style={{ height: `${14 + (i * 19) % 65}%`, animationDelay: `${-i * 32}ms` }}/>)}</div> }
 
 function App() {
-  const [started, setStarted] = useState(false)
-  const [stepIndex, setStepIndex] = useState(0)
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
-  const [playing, setPlaying] = useState(false)
+  const [view, setView] = useState<View>('welcome')
+  const [language, setLanguage] = useState('English')
+  const [name, setName] = useState('Alex')
+  const [goal, setGoal] = useState(goals[0])
+  const [starterAnswer, setStarterAnswer] = useState<number | null>(null)
+  const [heroPart, setHeroPart] = useState(0)
+  const [heroOptions, setHeroOptions] = useState([0, 0, 0, 0])
+  const [activeLevel, setActiveLevel] = useState(1)
+  const [missionId, setMissionId] = useState(1)
+  const [lessonStep, setLessonStep] = useState(0)
+  const [answer, setAnswer] = useState<number | null>(null)
+  const [completed, setCompleted] = useState<number[]>([])
   const [recording, setRecording] = useState(false)
   const [recorded, setRecorded] = useState(false)
   const [seconds, setSeconds] = useState(0)
-  const [typedMode, setTypedMode] = useState(false)
-  const [typedAnswer, setTypedAnswer] = useState('')
-  const [showMap, setShowMap] = useState(false)
-  const mediaRecorder = useRef<MediaRecorder | null>(null)
-  const chunks = useRef<Blob[]>([])
-  const step = steps[stepIndex]
+  const [typed, setTyped] = useState(false)
+  const [typedText, setTypedText] = useState('')
+  const [selfChecks, setSelfChecks] = useState([true, true, true])
+  const [exitOpen, setExitOpen] = useState(false)
+  const recorder = useRef<MediaRecorder | null>(null)
+  const mission = missions[missionId - 1]
 
   useEffect(() => {
     if (!recording) return
-    const id = window.setInterval(() => setSeconds((value) => value + 1), 1000)
-    return () => window.clearInterval(id)
+    const timer = window.setInterval(() => setSeconds((v) => v + 1), 1000)
+    return () => window.clearInterval(timer)
   }, [recording])
 
   useEffect(() => {
-    setSelectedAnswer(null)
-    setPlaying(false)
-    setRecording(false)
-    setRecorded(false)
-    setSeconds(0)
-    setTypedMode(false)
-    setTypedAnswer('')
-  }, [stepIndex])
+    setAnswer(null); setRecording(false); setRecorded(false); setSeconds(0); setTyped(false); setTypedText(''); setSelfChecks([true, true, true])
+  }, [lessonStep, missionId])
 
   async function toggleRecording() {
-    if (recording) {
-      mediaRecorder.current?.stop()
-      setRecording(false)
-      setRecorded(true)
-      return
-    }
-
+    if (recording) { recorder.current?.stop(); setRecording(false); setRecorded(true); return }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
-      chunks.current = []
-      recorder.ondataavailable = (event) => chunks.current.push(event.data)
-      recorder.onstop = () => stream.getTracks().forEach((track) => track.stop())
-      recorder.start()
-      mediaRecorder.current = recorder
-    } catch {
-      mediaRecorder.current = null
-    }
-    setSeconds(0)
-    setRecording(true)
+      const next = new MediaRecorder(stream)
+      next.onstop = () => stream.getTracks().forEach((track) => track.stop())
+      next.start(); recorder.current = next
+    } catch { recorder.current = null }
+    setSeconds(0); setRecording(true)
   }
 
-  function next() {
-    if (stepIndex < steps.length - 1) setStepIndex((value) => value + 1)
+  function openMission(id: number) { setMissionId(id); setLessonStep(0); setView('lesson') }
+  function finishStep() {
+    if (lessonStep === 4) setCompleted((items) => items.includes(missionId) ? items : [...items, missionId])
+    if (lessonStep < 5) setLessonStep((v) => v + 1)
+    else setView('journey')
   }
+  function selectLevel(id: number) { setActiveLevel(id); setView('level') }
 
-  function previous() {
-    if (stepIndex > 0) setStepIndex((value) => value - 1)
-    else setStarted(false)
-  }
-
-  function goToStep(index: number) {
-    setStepIndex(index)
-    setStarted(true)
-    setShowMap(false)
-  }
-
-  if (!started) {
-    return (
-      <main className="app-shell landing-shell">
-        <section className="phone landing">
-          <div className="ambient ambient-one" />
-          <div className="ambient ambient-two" />
-          <header className="brand-row">
-            <Logo />
-            <button className="icon-button quiet" aria-label="Open mission map" onClick={() => setShowMap(true)}><Icon name="book" /></button>
-          </header>
-          <div className="landing-copy">
-            <span className="eyebrow">IMMERSIVE ENGLISH</span>
-            <h1>Speak like<br />you mean it.</h1>
-            <p>Real scenes. Useful phrases. Your voice.</p>
-          </div>
-          <div className="mission-card glass-card">
-            <div className="mission-meta"><span>MISSION 11</span><span>8–10 MIN</span></div>
-            <div className="mission-visual"><Actor /><span className="play-badge"><Icon name="play" size={18} /></span></div>
-            <h2>Tell me what happened</h2>
-            <p>Describe an event, react naturally and keep the story moving.</p>
-            <div className="mini-progress"><i /></div>
-            <button className="primary-button" onClick={() => setStarted(true)}>Start mission <Icon name="arrow" /></button>
-          </div>
-          <p className="streak"><Icon name="spark" size={16} /> 4 day speaking streak</p>
-        </section>
-        {showMap && <MissionMap current={stepIndex} onClose={() => setShowMap(false)} onSelect={goToStep} />}
-      </main>
-    )
-  }
-
-  return (
-    <main className="app-shell">
-      <section className="phone lesson-phone">
-        <header className="lesson-header">
-          <button className="icon-button" aria-label="Previous" onClick={previous}><Icon name="back" /></button>
-          <div className="progress-wrap">
-            <div className="progress-track"><i style={{ width: `${((stepIndex + 1) / steps.length) * 100}%` }} /></div>
-            <span>{stepIndex + 1}/{steps.length}</span>
-          </div>
-          <button className="icon-button" aria-label="Open mission map" onClick={() => setShowMap(true)}><Icon name="book" /></button>
-        </header>
-
-        <section className={`lesson-content kind-${step.kind}`} key={stepIndex}>
-          {step.kind !== 'complete' && <div className="step-heading"><span>{step.eyebrow}</span><h1>{step.title}</h1>{step.prompt && <p>{step.prompt}</p>}</div>}
-
-          {step.kind === 'moment' && <MomentScreen playing={playing} onToggle={() => setPlaying(!playing)} line={step.actorLine!} />}
-          {step.kind === 'choice' && <ChoiceScreen selected={selectedAnswer} onSelect={setSelectedAnswer} />}
-          {step.kind === 'pattern' && <PatternScreen />}
-          {step.kind === 'listen' && <ListenScreen playing={playing} onToggle={() => setPlaying(!playing)} selected={selectedAnswer} onSelect={setSelectedAnswer} />}
-          {step.kind === 'speak' && <SpeakScreen line={step.actorLine} recording={recording} recorded={recorded} seconds={seconds} typedMode={typedMode} typedAnswer={typedAnswer} onTypedChange={setTypedAnswer} onToggleMode={() => setTypedMode(!typedMode)} onRecord={toggleRecording} />}
-          {step.kind === 'selfcheck' && <SelfCheck />}
-          {step.kind === 'complete' && <CompleteScreen onRestart={() => setStepIndex(0)} />}
-
-          {step.kind !== 'complete' && (
-            <footer className="lesson-footer">
-              <button className="primary-button" disabled={(step.kind === 'choice' || step.kind === 'listen') && selectedAnswer === null} onClick={next}>
-                {stepIndex === steps.length - 2 ? 'Finish mission' : 'Continue'} <Icon name="arrow" />
-              </button>
-              {(step.kind === 'speak' || step.kind === 'selfcheck') && <button className="secondary-button" onClick={next}>Skip for now</button>}
-            </footer>
-          )}
-        </section>
-      </section>
-      {showMap && <MissionMap current={stepIndex} onClose={() => setShowMap(false)} onSelect={goToStep} />}
-    </main>
-  )
+  return <main className="stage"><section className={`phone view-${view}`}>
+    {view === 'welcome' && <Welcome onNext={() => setView('language')}/>}
+    {view === 'language' && <Language value={language} onChange={setLanguage} onBack={() => setView('welcome')} onNext={() => setView('personalize')}/>}
+    {view === 'personalize' && <Personalize name={name} goal={goal} onName={setName} onGoal={setGoal} onBack={() => setView('language')} onNext={() => setView('starter')}/>}
+    {view === 'starter' && <Starter answer={starterAnswer} onAnswer={setStarterAnswer} onBack={() => setView('personalize')} onNext={() => setView('intro')}/>}
+    {view === 'intro' && <Intro name={name} onBack={() => setView('starter')} onNext={() => setView('hero')}/>}
+    {view === 'hero' && <HeroBuilder part={heroPart} options={heroOptions} onOption={(option) => setHeroOptions((v) => v.map((x, i) => i === heroPart ? option : x))} onBack={() => heroPart ? setHeroPart(heroPart - 1) : setView('intro')} onNext={() => heroPart < 3 ? setHeroPart(heroPart + 1) : setView('feed')}/>}
+    {view === 'feed' && <Feed name={name} completed={completed} onMission={() => openMission(completed.length + 1 > 20 ? 1 : completed.length + 1)} onNav={setView}/>}
+    {view === 'journey' && <Journey completed={completed} onLevel={selectLevel} onNav={setView}/>}
+    {view === 'profile' && <Profile name={name} language={language} goal={goal} completed={completed} heroOptions={heroOptions} onEdit={() => { setHeroPart(0); setView('hero') }} onNav={setView}/>}
+    {view === 'level' && <LevelScreen levelId={activeLevel} completed={completed} onBack={() => setView('journey')} onMission={openMission}/>}
+    {view === 'lesson' && <Lesson mission={mission} step={lessonStep} answer={answer} onAnswer={setAnswer} recording={recording} recorded={recorded} seconds={seconds} typed={typed} typedText={typedText} selfChecks={selfChecks} onRecord={toggleRecording} onTyped={() => setTyped((v) => !v)} onText={setTypedText} onCheck={(index) => setSelfChecks((v) => v.map((x, i) => i === index ? !x : x))} onExit={() => setExitOpen(true)} onNext={finishStep} onReplay={() => setLessonStep(0)} onJourney={() => setView('journey')}/>}
+    {exitOpen && <ExitModal onStay={() => setExitOpen(false)} onLeave={() => { setExitOpen(false); setView('feed') }}/>}
+  </section></main>
 }
 
-function Logo() {
-  return <div className="logo"><span><i /><i /><i /></span><strong>Omalingo</strong></div>
+function Welcome({ onNext }: { onNext: () => void }) { return <div className="onboarding welcome"><Logo/><div className="welcome-art"><Mascot large/></div><h1>Learn languages.<br/>Build <em>your legend.</em></h1><p>Complete missions, explore new worlds, and grow with your own leopard.</p><button className="primary" onClick={onNext}>Get started <Icon name="arrow"/></button><small>By continuing, you agree to our Terms of Service and Privacy Policy</small></div> }
+
+function Top({ title, onBack, step }: { title: string; onBack: () => void; step?: string }) { return <header className="top"><button onClick={onBack} aria-label="Back"><Icon name="back"/></button><span>{step || title}</span><i/></header> }
+
+function Language({ value, onChange, onBack, onNext }: { value: string; onChange: (v: string) => void; onBack: () => void; onNext: () => void }) { return <div className="onboarding form-screen"><Top title="Your starting point" onBack={onBack}/><div className="form-copy"><span className="kicker">STEP 1 OF 2</span><h1>Choose your language</h1><p>What would you like to learn?</p></div><div className="choice-list">{languages.map(([flag, label]) => <button className={value === label ? 'selected' : ''} onClick={() => onChange(label)} key={label}><b>{flag}</b><span>{label}</span><i>{value === label && <Icon name="check" size={15}/>}</i></button>)}</div><button className="primary pinned" onClick={onNext}>Continue</button></div> }
+
+function Personalize({ name, goal, onName, onGoal, onBack, onNext }: { name: string; goal: string; onName: (v: string) => void; onGoal: (v: string) => void; onBack: () => void; onNext: () => void }) { return <div className="onboarding form-screen"><Top title="Your starting point" onBack={onBack}/><div className="form-copy"><span className="kicker">STEP 2 OF 2</span><h1>Make it personal</h1><label>Your name<input value={name} onChange={(e) => onName(e.target.value)} placeholder="Your name"/></label><p>Where would more English help?</p></div><div className="choice-list goal-list">{goals.map((item) => <button className={goal === item ? 'selected' : ''} onClick={() => onGoal(item)} key={item}><span>{item}</span><i>{goal === item && <Icon name="check" size={15}/>}</i></button>)}</div><button className="primary pinned" onClick={onNext}>Try a tiny listening check</button></div> }
+
+function Video({ compact = false }: { compact?: boolean }) { return <div className={`video ${compact ? 'compact' : ''}`}><img src="/assets/video-order.png" alt="Omarito speaking"/><div className="video-progress"><i/></div></div> }
+
+function Starter({ answer, onAnswer, onBack, onNext }: { answer: number | null; onAnswer: (v: number) => void; onBack: () => void; onNext: () => void }) { const options = ['Playing football', 'Learning photography', 'Starting a new job']; return <div className="starter"><Top title="Your starting point" onBack={onBack}/><Video/><div className="sheet"><span className="kicker">A TINY LISTENING CHECK</span><h2>What is new in his life?</h2>{options.map((item, i) => <button key={item} className={`lesson-option ${answer === i ? i === 1 ? 'right' : 'wrong' : answer !== null ? 'dim' : ''}`} onClick={() => onAnswer(i)}>{item}{answer === i && <Icon name={i === 1 ? 'check' : 'close'} size={17}/>}</button>)}{answer !== null && <p className={answer === 1 ? 'success-copy' : 'retry-copy'}>{answer === 1 ? 'Correct · nice listening!' : 'Try again · listen for “photography”.'}</p>}<button className="primary" disabled={answer !== 1} onClick={onNext}>Continue</button></div></div> }
+
+function Intro({ name, onBack, onNext }: { name: string; onBack: () => void; onNext: () => void }) { return <div className="intro"><Top title="A place to begin" onBack={onBack}/><div className="intro-glow"/><span className="kicker">A PLACE TO BEGIN</span><h1>Find your voice</h1><p>First short missions introduce an interest, give choices, and start learning fast.</p><div className="intro-card"><small>More than your name</small><strong>Mission 01</strong></div><button className="primary" onClick={onNext}>Create my hero</button><small className="hint">Great start, {name}. Your first mission is ready.</small></div> }
+
+function HeroBuilder({ part, options, onOption, onBack, onNext }: { part: number; options: number[]; onOption: (v: number) => void; onBack: () => void; onNext: () => void }) { const labels = ['Choose your eyes', 'Choose your nose', 'Choose your smile', 'Choose your outfit']; return <div className="hero-builder"><Top title="Create your hero" onBack={onBack} step={`${part + 1}/4`}/><h1>{labels[part]}</h1><Mascot large face={options[0] + options[2]} outfit={options[3]}/><div className="custom-tabs">{['👁', '●', '⌣', '👕'].map((x, i) => <span className={part === i ? 'active' : ''} key={x}>{x}</span>)}</div><div className="custom-grid">{Array.from({ length: 6 }, (_, i) => <button className={options[part] === i ? 'selected' : ''} key={i} onClick={() => onOption(i)}>{part === 0 ? ['◉','●','﹀','◌','•','⌁'][i] : part === 1 ? ['•','▾','◆','●','▲','⌄'][i] : part === 2 ? ['⌣','◡','ω','ᴗ','﹏','⌢'][i] : ['🤍','🧡','💙','💜','🩶','💚'][i]}</button>)}</div><div className="builder-actions"><button className="secondary" onClick={onBack}>Back</button><button className="primary" onClick={onNext}>{part === 3 ? 'Continue' : 'Next'}</button></div></div> }
+
+function AppHeader({ subtitle }: { subtitle: string }) { return <header className="app-header"><div className="mini-avatar"><Mascot/></div><div><b>Omarito</b><small>{subtitle}</small></div><span>🪙 500</span></header> }
+
+function BottomNav({ active, onNav }: { active: View; onNav: (v: View) => void }) { return <nav className="bottom-nav"><button className={active === 'feed' ? 'active' : ''} onClick={() => onNav('feed')}><Icon name="home"/><span>Feed</span></button><button className={active === 'journey' ? 'active' : ''} onClick={() => onNav('journey')}><Icon name="journey"/><span>Journey</span></button><button className={active === 'profile' ? 'active' : ''} onClick={() => onNav('profile')}><Icon name="profile"/><span>Profile</span></button></nav> }
+
+function Feed({ name, completed, onMission, onNav }: { name: string; completed: number[]; onMission: () => void; onNav: (v: View) => void }) { const next = missions[Math.min(completed.length, 19)]; return <div className="app-view feed"><AppHeader subtitle="Your story starts here"/><div className="feed-media"><img src="/assets/video-feed.png" alt="Omarito video"/><button className="big-play"><Icon name="play" size={24}/></button><div className="social"><span>♡<small>1.2K</small></span><span>◌<small>489</small></span></div></div><div className="feed-sheet"><span className="kicker">UP NEXT · MISSION {String(next.id).padStart(2,'0')}</span><h1>{completed.length ? `Keep going, ${name}` : 'More than your name'}</h1><p>{completed.length ? next.title : 'Introduce yourself, add one real detail, and start speaking from day one.'}</p><button className="primary" onClick={onMission}>{completed.length ? 'Continue learning' : "Start today’s mission"} <Icon name="arrow"/></button></div><BottomNav active="feed" onNav={onNav}/></div> }
+
+function Journey({ completed, onLevel, onNav }: { completed: number[]; onLevel: (id: number) => void; onNav: (v: View) => void }) { return <div className="app-view journey"><AppHeader subtitle="Map your progress"/><div className="view-title"><span className="kicker">WORLD 1 · NOMA</span><h1>Journey</h1><p>{completed.length}/20 missions complete</p></div><div className="orbit-map"><div className="orbit one"/><div className="orbit two"/><div className="orbit-center"><Mascot/></div>{levels.map((level, i) => <button key={level.id} className={`level-node node-${i + 1}`} style={{ '--node-color': level.color } as CSSProperties} onClick={() => onLevel(level.id)}><b>{level.id}</b><span>{level.title}</span></button>)}</div><div className="journey-summary"><span>Level progress</span><div><i style={{ width: `${completed.length / 20 * 100}%` }}/></div><small>{completed.length * 50}/1000 XP</small></div><BottomNav active="journey" onNav={onNav}/></div> }
+
+function LevelScreen({ levelId, completed, onBack, onMission }: { levelId: number; completed: number[]; onBack: () => void; onMission: (id: number) => void }) { const level = levels[levelId - 1]; const items = missions.filter((m) => m.level === levelId); const completeCount = items.filter((m) => completed.includes(m.id)).length; return <div className="level-screen"><div className="level-hero" style={{ '--level-color': level.color } as CSSProperties}><Top title={level.title} onBack={onBack}/><span className="kicker">LEVEL {level.id}</span><h1>{level.title}</h1><p>{level.subtitle}</p><div className="medals">{['Bronze','Silver','Gold','Legend'].map((m,i) => <span className={completeCount > i ? 'won' : ''} key={m}><i>{['●','◆','⬟','★'][i]}</i><small>{m}</small></span>)}</div></div><div className="mission-list"><h2>Missions <small>{completeCount}/5</small></h2>{items.map((mission) => { const done = completed.includes(mission.id); const locked = mission.id > Math.max(1, completed.length + 1); return <button key={mission.id} disabled={locked} onClick={() => onMission(mission.id)}><span className={done ? 'done' : ''}>{done ? <Icon name="check" size={15}/> : mission.id}</span><div><b>{mission.title}</b><small>{done ? 'Completed · replay anytime' : locked ? 'Complete previous mission' : 'Ready to begin'}</small></div><em>{done ? '+50 XP' : locked ? '🔒' : 'Start'}</em></button>})}</div></div> }
+
+function Profile({ name, language, goal, completed, heroOptions, onEdit, onNav }: { name: string; language: string; goal: string; completed: number[]; heroOptions: number[]; onEdit: () => void; onNav: (v: View) => void }) { return <div className="app-view profile"><div className="profile-head"><button className="edit-hero" onClick={onEdit}>Edit hero</button><Mascot large face={heroOptions[0] + heroOptions[2]} outfit={heroOptions[3]}/><h1>{name}</h1><p>Level {Math.max(1, Math.ceil((completed.length + 1) / 4))}</p></div><div className="account-progress"><span>Account level</span><b>{completed.length * 50} / 1000 XP</b><div><i style={{ width: `${Math.min(100, completed.length * 5)}%` }}/></div></div><div className="stat-row"><span><b>🪙 {500 + completed.length * 15}</b>Coins</span><span><b>🔥 {Math.max(1, completed.length)}</b>Day streak</span><span><b>🏆 {Math.floor(completed.length / 5)}</b>Badges</span></div><div className="learning-card"><span>Learning</span><h2>🇬🇧 {language}</h2><p>{goal}</p><div><i style={{ width: `${completed.length / 20 * 100}%` }}/></div></div><BottomNav active="profile" onNav={onNav}/></div> }
+
+type LessonProps = { mission: Mission; step: number; answer: number | null; onAnswer: (v: number) => void; recording: boolean; recorded: boolean; seconds: number; typed: boolean; typedText: string; selfChecks: boolean[]; onRecord: () => void; onTyped: () => void; onText: (v: string) => void; onCheck: (i: number) => void; onExit: () => void; onNext: () => void; onReplay: () => void; onJourney: () => void }
+
+function Lesson({ mission, step, answer, onAnswer, recording, recorded, seconds, typed, typedText, selfChecks, onRecord, onTyped, onText, onCheck, onExit, onNext, onReplay, onJourney }: LessonProps) {
+  const progress = (step + 1) / 6 * 100
+  const headings = ['Catch the meaning', 'Make it yours', 'Self-check', 'Keep it going', 'Your turn', 'Mission complete']
+  return <div className="lesson"><header className="lesson-top"><button onClick={onExit}><Icon name="close"/></button><div><i style={{ width: `${progress}%` }}/></div><span>{step + 1}/6</span></header>{step === 0 && <div className="quiz-screen"><Video/><div className="quiz-sheet"><div className="speaker"><span>O</span><b>{mission.question}</b></div>{mission.answers.map((item, i) => <button key={item} className={`lesson-option ${answer === i ? i === mission.correct ? 'right' : 'wrong' : answer !== null ? 'dim' : ''}`} onClick={() => onAnswer(i)}>{item}{answer === i && <Icon name={i === mission.correct ? 'check' : 'close'} size={17}/>}</button>)}{answer !== null && <div className={`lesson-feedback ${answer === mission.correct ? 'good' : 'bad'}`}><Icon name={answer === mission.correct ? 'spark' : 'sound'}/><p>{answer === mission.correct ? mission.feedback : 'Listen again and use the clue in the scene.'}</p></div>}<button className="primary" disabled={answer !== mission.correct} onClick={onNext}>Continue</button></div></div>}
+    {step === 1 && <Practice heading={headings[step]} prompt={mission.prompt} recording={recording} recorded={recorded} seconds={seconds} typed={typed} typedText={typedText} onRecord={onRecord} onTyped={onTyped} onText={onText} onNext={onNext}/>}
+    {step === 2 && <div className="practice selfcheck"><AppHeader subtitle={mission.title}/><span className="kicker">SELF-CHECK</span><h1>{headings[step]}</h1><div className="example">{mission.example}</div><h2>Did you…</h2>{mission.checks.map((item, i) => <button className={selfChecks[i] ? 'checked' : ''} onClick={() => onCheck(i)} key={item}><span><Icon name="check" size={15}/></span>{item}</button>)}<small>Self-check · not an automatic score</small><button className="primary foot" onClick={onNext}>Save practice</button></div>}
+    {step === 3 && <div className="conversation"><Video/><div className="conversation-sheet"><span className="kicker">A CONVERSATION WITH MAYA</span><h2>{mission.followLine}</h2>{mission.followChoices.map((item, i) => <button className="dialog-choice" key={item} onClick={() => { onAnswer(i); setTimeout(onNext, 160) }}>{item}</button>)}</div></div>}
+    {step === 4 && <Practice heading={headings[step]} prompt={mission.followPrompt} recording={recording} recorded={recorded} seconds={seconds} typed={typed} typedText={typedText} onRecord={onRecord} onTyped={onTyped} onText={onText} onNext={onNext}/>}
+    {step === 5 && <div className="complete"><div className="confetti">{Array.from({ length: 22 }, (_, i) => <i key={i} style={{ '--i': i } as CSSProperties}/>)}</div><div className="trophy"><Icon name="trophy" size={43}/></div><span className="kicker">MISSION {String(mission.id).padStart(2,'0')} COMPLETE</span><h1>{mission.title}</h1><p>You listened, responded and kept the conversation moving.</p><div className="reward"><span>+50 XP</span><span>🪙 +15</span></div><button className="primary" onClick={onJourney}>Back to journey</button><button className="secondary" onClick={onReplay}>Replay mission</button></div>}
+  </div>
 }
 
-function Actor() {
-  return <img className="actor-image" src="/assets/video-order.png" alt="" aria-hidden="true" />
-}
+function Practice({ heading, prompt, recording, recorded, seconds, typed, typedText, onRecord, onTyped, onText, onNext }: { heading: string; prompt: string; recording: boolean; recorded: boolean; seconds: number; typed: boolean; typedText: string; onRecord: () => void; onTyped: () => void; onText: (v: string) => void; onNext: () => void }) { return <div className="practice"><AppHeader subtitle={heading}/><span className="kicker">{heading.toUpperCase()}</span><h1>{prompt}</h1>{typed ? <div className="type-box"><textarea autoFocus value={typedText} onChange={(e) => onText(e.target.value)} placeholder="Type what you would say…"/><small>{typedText.length}/240</small></div> : recorded ? <div className="review-recording"><button><Icon name="play"/></button><Wave/><span>0:{String(Math.max(seconds,2)).padStart(2,'0')}</span></div> : <button className={`record ${recording ? 'active' : ''}`} onClick={onRecord}><span><Icon name={recording ? 'pause' : 'mic'} size={32}/></span>{recording && <b>{seconds}s</b>}</button>}<button className="type-toggle" onClick={onTyped}><Icon name={typed ? 'mic' : 'keyboard'} size={17}/>{typed ? 'Use voice' : 'Type instead'}</button>{recorded && <button className="record-again" onClick={onRecord}>Record again</button>}<div className="practice-actions">{recorded && <button className="secondary">Review response</button>}<button className="primary" disabled={!recorded && !typedText.trim()} onClick={onNext}>Continue <Icon name="arrow"/></button></div></div> }
 
-function MomentScreen({ playing, onToggle, line }: { playing: boolean; onToggle: () => void; line: string }) {
-  return (
-    <div className="video-stage">
-      <div className="video-noise" />
-      <Actor />
-      <div className="video-caption">{line}</div>
-      <button className="video-control" onClick={onToggle} aria-label={playing ? 'Pause' : 'Play'}><Icon name={playing ? 'pause' : 'play'} size={24} /></button>
-      <div className="video-timeline"><i className={playing ? 'playing' : ''} /></div>
-    </div>
-  )
-}
-
-function ChoiceScreen({ selected, onSelect }: { selected: number | null; onSelect: (index: number) => void }) {
-  return (
-    <div className="answer-list">
-      {answers.map((answer, index) => {
-        const state = selected === null ? '' : selected === index ? (index === 0 ? 'correct' : 'wrong') : 'muted'
-        return <button key={answer} className={`answer-option ${state}`} onClick={() => onSelect(index)}><span>{String.fromCharCode(65 + index)}</span>{answer}{state === 'correct' && <Icon name="check" />}{state === 'wrong' && <Icon name="close" />}</button>
-      })}
-      {selected !== null && <div className={`feedback ${selected === 0 ? 'good' : 'retry'}`}><Icon name={selected === 0 ? 'spark' : 'sound'} /><div><strong>{selected === 0 ? 'Nice catch' : 'Listen once more'}</strong><p>{selected === 0 ? '“Left without us” tells you they missed it.' : 'The train left before they could get on.'}</p></div></div>}
-    </div>
-  )
-}
-
-function PatternScreen() {
-  return (
-    <div className="pattern-card glass-card">
-      <div className="pattern-example"><span>WHAT?</span><strong>The train left</strong></div>
-      <div className="pattern-plus">+</div>
-      <div className="pattern-example"><span>DETAIL</span><strong>without us</strong></div>
-      <div className="phrase-result">The train left <em>without us.</em></div>
-      <p><Icon name="spark" size={18} /> Add one clear detail. Your story instantly feels real.</p>
-    </div>
-  )
-}
-
-function ListenScreen({ playing, onToggle, selected, onSelect }: { playing: boolean; onToggle: () => void; selected: number | null; onSelect: (index: number) => void }) {
-  return (
-    <div className="listen-screen">
-      <button className={`audio-orb ${playing ? 'playing' : ''}`} onClick={onToggle} aria-label={playing ? 'Pause audio' : 'Play audio'}><span><Icon name={playing ? 'pause' : 'sound'} size={28} /></span></button>
-      <Waveform active={playing} />
-      <div className="answer-list compact">
-        {["The train left without us.", "The train waited for us."].map((answer, index) => <button key={answer} className={`answer-option ${selected === index ? (index === 0 ? 'correct' : 'wrong') : ''}`} onClick={() => onSelect(index)}><span>{index + 1}</span>{answer}</button>)}
-      </div>
-    </div>
-  )
-}
-
-type SpeakProps = {
-  line?: string
-  recording: boolean
-  recorded: boolean
-  seconds: number
-  typedMode: boolean
-  typedAnswer: string
-  onTypedChange: (value: string) => void
-  onToggleMode: () => void
-  onRecord: () => void
-}
-
-function SpeakScreen({ line, recording, recorded, seconds, typedMode, typedAnswer, onTypedChange, onToggleMode, onRecord }: SpeakProps) {
-  return (
-    <div className="speak-screen">
-      {line && <div className="line-card"><span>MAYA</span><p>{line}</p><button aria-label="Hear Maya"><Icon name="sound" /></button></div>}
-      {typedMode ? (
-        <div className="typing-box"><label htmlFor="answer">Your answer</label><textarea id="answer" autoFocus value={typedAnswer} onChange={(event) => onTypedChange(event.target.value)} placeholder="Type what you would say…" /><span>{typedAnswer.length}/160</span></div>
-      ) : recorded ? (
-        <div className="recording-review"><button className="small-play"><Icon name="play" /></button><Waveform /><span>0:{String(Math.max(seconds, 2)).padStart(2, '0')}</span></div>
-      ) : (
-        <button className={`mic-button ${recording ? 'recording' : ''}`} onClick={onRecord} aria-label={recording ? 'Stop recording' : 'Start recording'}><span><Icon name={recording ? 'pause' : 'mic'} size={32} /></span>{recording && <b>{seconds}s</b>}</button>
-      )}
-      <button className="type-toggle" onClick={onToggleMode}><Icon name={typedMode ? 'mic' : 'keyboard'} size={17} /> {typedMode ? 'Record instead' : 'Type instead'}</button>
-      {recorded && <button className="record-again" onClick={onRecord}>Record again</button>}
-    </div>
-  )
-}
-
-function SelfCheck() {
-  const [checks, setChecks] = useState([true, true])
-  return (
-    <div className="self-check">
-      <div className="example-phrase">Let’s meet at the museum entrance at ten.</div>
-      <h2>Did you…</h2>
-      {['Respond to what Maya just said', 'Add a relevant detail'].map((label, index) => <button key={label} className={checks[index] ? 'checked' : ''} onClick={() => setChecks((value) => value.map((item, itemIndex) => itemIndex === index ? !item : item))}><span><Icon name="check" size={16} /></span>{label}</button>)}
-      <p>Self-check · not an automatic score</p>
-    </div>
-  )
-}
-
-function CompleteScreen({ onRestart }: { onRestart: () => void }) {
-  return (
-    <div className="complete-screen">
-      <div className="confetti">{Array.from({ length: 24 }, (_, index) => <i key={index} style={{ '--i': index } as React.CSSProperties} />)}</div>
-      <div className="trophy"><Icon name="trophy" size={44} /></div>
-      <span>MISSION COMPLETE</span>
-      <h1>Tell me what happened</h1>
-      <p>You told a story, reacted and kept a conversation moving.</p>
-      <div className="skill-row"><div><Icon name="sound" /><span><b>Listening</b>7 activities</span></div><div><Icon name="mic" /><span><b>Speaking</b>6 recordings</span></div></div>
-      <button className="primary-button" onClick={onRestart}>Practice again <Icon name="arrow" /></button>
-    </div>
-  )
-}
-
-function MissionMap({ current, onClose, onSelect }: { current: number; onClose: () => void; onSelect: (index: number) => void }) {
-  return (
-    <div className="map-backdrop" onClick={onClose}>
-      <aside className="mission-map" onClick={(event) => event.stopPropagation()}>
-        <header><div><span>MISSION 11</span><h2>Tell me what happened</h2></div><button className="icon-button" onClick={onClose}><Icon name="close" /></button></header>
-        <div className="map-progress"><i style={{ width: `${((current + 1) / steps.length) * 100}%` }} /></div>
-        <div className="map-steps">
-          {steps.map((item, index) => <button key={`${item.eyebrow}-${index}`} className={`${index === current ? 'current' : ''} ${index < current ? 'done' : ''}`} onClick={() => onSelect(index)}><span>{index < current ? <Icon name="check" size={15} /> : index + 1}</span><div><b>{item.eyebrow}</b><small>{item.title}</small></div></button>)}
-        </div>
-      </aside>
-    </div>
-  )
-}
+function ExitModal({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) { return <div className="modal-backdrop"><div className="exit-modal"><span>✦</span><h2>Leave this practice?</h2><p>Your progress is saved.</p><button className="primary" onClick={onStay}>Keep practicing</button><button className="secondary" onClick={onLeave}>Back to feed</button></div></div> }
 
 export default App
