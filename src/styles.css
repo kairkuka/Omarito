@@ -102,18 +102,18 @@ h1, h2, h3, p { margin-top: 0; }
 .hero-visual { position: relative; z-index: 1; width: 260px; height: 335px; filter: drop-shadow(0 20px 24px #0007); }
 .hero-base { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
 .hero-feature, .hero-clothes { position: absolute; z-index: 3; object-fit: contain; pointer-events: none; transition: all .2s ease; }
-.hero-eyes { width: 64px; height: 29px; left: 98px; top: 76px; }
-.hero-nose { width: 30px; height: 30px; left: 115px; top: 96px; }
-.hero-mouth { width: 38px; height: 34px; left: 111px; top: 107px; }
+.hero-eyes { width: 60px; height: 27px; left: 100px; top: 65px; }
+.hero-nose { width: 27px; height: 27px; left: 116.5px; top: 64px; }
+.hero-mouth { width: 35px; height: 31px; left: 112.5px; top: 83px; }
 .hero-eyes.option-4 { transform: scaleX(.86) rotate(3deg); filter: saturate(1.35); }
 .hero-eyes.option-5 { transform: scale(1.12) rotate(-2deg); filter: brightness(1.1); }
 .hero-nose.option-4 { transform: scale(.88) rotate(4deg); }.hero-nose.option-5 { transform: scale(1.12); }
 .hero-mouth.option-4 { transform: scaleX(1.15) rotate(3deg); }.hero-mouth.option-5 { transform: scale(.9) rotate(-4deg); }
 .hero-clothes { left: 50%; transform: translateX(-50%); }
-.hero-clothes.clothes-0, .hero-clothes.clothes-5 { width: 105px; height: 78px; top: 119px; }
-.hero-clothes.clothes-1, .hero-clothes.clothes-4 { width: 94px; height: 80px; top: 120px; }
-.hero-clothes.clothes-2 { width: 68px; height: 112px; top: 184px; }
-.hero-clothes.clothes-3 { width: 116px; height: 68px; top: 267px; }
+.hero-clothes.clothes-0, .hero-clothes.clothes-5 { width: 138px; height: 108px; top: 103px; }
+.hero-clothes.clothes-1, .hero-clothes.clothes-4 { width: 128px; height: 108px; top: 104px; }
+.hero-clothes.clothes-2 { width: 92px; height: 145px; top: 168px; }
+.hero-clothes.clothes-3 { width: 150px; height: 80px; top: 252px; }
 .hero-clothes.option-1 { filter: sepia(.8) saturate(2.3) hue-rotate(170deg); }.hero-clothes.option-2 { filter: sepia(.8) saturate(2.2) hue-rotate(210deg); }.hero-clothes.option-3 { filter: sepia(.7) saturate(2.4) hue-rotate(285deg); }.hero-clothes.option-4 { filter: sepia(.8) saturate(2.4) hue-rotate(60deg); transform: translateX(-50%) scale(1.05); }.hero-clothes.option-5 { filter: sepia(.65) saturate(2.2) hue-rotate(320deg); transform: translateX(-50%) scale(.96); }
 .hero-halo { position: absolute; width: 250px; height: 250px; border-radius: 50%; background: radial-gradient(circle, #6489e44c, transparent 68%); }
 .hero-halo.tone-1 { filter: hue-rotate(40deg); }.hero-halo.tone-2 { filter: hue-rotate(90deg); }.hero-halo.tone-3 { filter: hue-rotate(150deg); }
@@ -132,7 +132,7 @@ h1, h2, h3, p { margin-top: 0; }
 .avatar-img { width: 39px; height: 39px; position: relative; display: inline-block; flex: none; overflow: hidden; border-radius: 50%; background: linear-gradient(145deg, #385181, #18274a); }
 .avatar-base { width: 100%; height: 100%; object-fit: contain; }
 .avatar-feature { position: absolute; z-index: 2; object-fit: contain; pointer-events: none; }
-.avatar-eyes { width: 48%; height: 20%; left: 26%; top: 36%; }.avatar-nose { width: 24%; height: 24%; left: 38%; top: 48%; }.avatar-mouth { width: 31%; height: 25%; left: 34.5%; top: 57%; }
+.avatar-eyes { width: 44%; height: 18%; left: 28%; top: 29%; }.avatar-nose { width: 21%; height: 21%; left: 39.5%; top: 38%; }.avatar-mouth { width: 28%; height: 22%; left: 36%; top: 48%; }
 .avatar-eyes.option-4 { transform: scaleX(.86) rotate(3deg); }.avatar-eyes.option-5 { transform: scale(1.1) rotate(-2deg); }.avatar-nose.option-4 { transform: scale(.88); }.avatar-nose.option-5 { transform: scale(1.1); }.avatar-mouth.option-4 { transform: scaleX(1.15); }.avatar-mouth.option-5 { transform: scale(.9) rotate(-4deg); }
 .app-header > div { display: flex; flex-direction: column; }.app-header b { font-size: 12px; }.app-header small { color: #7483a5; font-size: 8px; }
 .app-header > .app-coins { margin-left: auto; display: flex; align-items: center; color: #ffe26d; font-size: 11px; font-weight: 700; }.app-header > .app-coins img { width: 24px; height: 24px; object-fit: contain; }
