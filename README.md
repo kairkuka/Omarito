@@ -31,4 +31,15 @@ pnpm build
 pnpm preview
 ```
 
+## iOS / TestFlight
+
+```bash
+pnpm ios:sync
+pnpm ios:open
+```
+
+The iOS wrapper uses Capacitor 8, Swift Package Manager, bundle ID
+`com.kairkuka.omalingo`, version `1.0`, and build `1`. Select an Apple
+Developer team in Xcode before archiving for TestFlight.
+
 The prototype includes onboarding, hero setup, feed, four learning levels with 20 missions, a nine-step practice flow, typed and microphone answers, self-checks, progress maps, profile, and mission completion.
