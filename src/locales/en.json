@@ -1,0 +1,160 @@
+{
+  "common": {
+    "back": "Back",
+    "continue": "Continue",
+    "next": "Next",
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "saving": "Saving…",
+    "leave": "Leave",
+    "loadingProgress": "Loading your progress…"
+  },
+  "locale": {
+    "label": "Interface language",
+    "english": "English",
+    "russian": "Russian",
+    "kazakh": "Kazakh"
+  },
+  "welcome": {
+    "title": "Learn languages.",
+    "emphasis": "Build your legend.",
+    "description": "Complete missions, explore new worlds, and grow with your own leopard.",
+    "getStarted": "Get started",
+    "terms": "By continuing, you agree to our Terms of Service and Privacy Policy"
+  },
+  "onboarding": {
+    "startingPoint": "Your starting point",
+    "step1": "STEP 1 OF 2",
+    "step2": "STEP 2 OF 2",
+    "chooseLanguage": "Choose your language",
+    "whatLearn": "What would you like to learn?",
+    "makePersonal": "Make it personal",
+    "yourName": "Your name",
+    "whereHelp": "Where would more English help?",
+    "goalEveryday": "Everyday conversations",
+    "goalWork": "Work and collaboration",
+    "goalTravel": "Travel and meeting people"
+  },
+  "starting": {
+    "course": "English course",
+    "title": "Where should we start?",
+    "scratch": "Start from scratch",
+    "scratchDescription": "Learn the basics, one step at a time.",
+    "check": "Check my level",
+    "checkDescription": "Find a starting point that fits you.",
+    "optional": "The level check is optional."
+  },
+  "levelCheck": {
+    "title": "Find your starting point",
+    "progress": "{{current}} of {{total}}",
+    "unsure": "I’m not sure",
+    "leaveTitle": "Leave the level check?",
+    "saved": "Your answers are saved for this session.",
+    "keepGoing": "Keep going"
+  },
+  "recommendation": {
+    "finding": "Finding your starting point…",
+    "findingDescription": "A place to begin your English journey.",
+    "suggested": "Suggested for you",
+    "cardDescription": "Start with everyday basics.",
+    "description": "A suggested place to begin, not a limit on where you can go.",
+    "start": "Start learning"
+  },
+  "intro": {
+    "top": "A place to begin",
+    "kicker": "A PLACE TO BEGIN",
+    "title": "Find your voice",
+    "description": "First short missions introduce an interest, give choices, and start learning fast.",
+    "mission": "Mission 01",
+    "missionTitle": "More than your name",
+    "createHero": "Create my hero",
+    "hint": "Great start, {{name}}. Your first mission is ready."
+  },
+  "hero": {
+    "title": "Create your hero",
+    "eyes": "Choose your eyes",
+    "nose": "Choose your nose",
+    "smile": "Choose your smile",
+    "clothes": "Choose your clothes",
+    "option": "{{part}} option {{number}}"
+  },
+  "header": {
+    "storyStarts": "Your story starts here",
+    "mapProgress": "Map your progress"
+  },
+  "nav": {
+    "feed": "Feed",
+    "journey": "Journey",
+    "profile": "Profile"
+  },
+  "feed": {
+    "upNext": "UP NEXT · MISSION {{number}}",
+    "keepGoing": "Keep going, {{name}}",
+    "firstTitle": "More than your name",
+    "firstDescription": "Introduce yourself, add one real detail, and start speaking from day one.",
+    "continue": "Continue learning",
+    "start": "Start today’s mission",
+    "play": "Play video preview",
+    "pause": "Pause video preview"
+  },
+  "journey": {
+    "title": "Your journey",
+    "description": "Explore worlds. Build real-life language skills.",
+    "world": "World {{number}}",
+    "comingSoon": "Coming soon",
+    "locked": "Locked",
+    "progress": "World progress",
+    "missions": "NOMA · {{current}} of {{total}} missions"
+  },
+  "profile": {
+    "title": "Profile",
+    "learningDaily": "Learning every day",
+    "accountLevel": "Account level",
+    "level": "Level {{number}}",
+    "dayStreak": "day streak",
+    "learning": "Learning",
+    "beginner": "Beginner · A1",
+    "worldProgress": "World progress 40%",
+    "customize": "Customize your hero",
+    "settings": "Settings",
+    "edit": "Edit profile"
+  },
+  "learningLanguages": {
+    "English": "English",
+    "Spanish": "Spanish",
+    "Portuguese": "Portuguese",
+    "Indonesian": "Indonesian",
+    "Kazakh": "Kazakh",
+    "Russian": "Russian"
+  },
+  "editProfile": {
+    "title": "Edit profile",
+    "changeAvatar": "Change avatar",
+    "name": "Name",
+    "required": "Enter a name to continue."
+  },
+  "settings": {
+    "title": "Settings",
+    "sound": "Sound effects",
+    "reminders": "Practice reminders",
+    "account": "Account",
+    "privacy": "Privacy policy",
+    "terms": "Terms of service",
+    "logout": "Log out",
+    "logoutTitle": "Log out?",
+    "logoutDescription": "You can sign back in anytime.",
+    "stay": "Stay signed in"
+  },
+  "account": {
+    "title": "Account settings",
+    "label": "Account",
+    "guest": "TestFlight guest",
+    "synced": "Progress is synced securely.",
+    "local": "Progress is stored on this device.",
+    "delete": "Delete account",
+    "deleteTitle": "Delete account?",
+    "deleteDescription": "Account deletion will be enabled before public release.",
+    "keep": "Keep account"
+  }
+}

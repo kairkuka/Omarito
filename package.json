@@ -15,8 +15,10 @@
     "@capacitor/core": "^8.6.0",
     "@capacitor/ios": "^8.6.0",
     "@supabase/supabase-js": "2.119.0",
+    "i18next": "26.7.1",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "react-i18next": "17.1.12"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.6.0",
