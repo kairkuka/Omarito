@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { backendConfigured, loadAppState, saveAppState, type StartingChoice } from './lib/backend'
 
 type View = 'welcome' | 'language' | 'personalize' | 'starting' | 'level-check' | 'recommendation' | 'starter' | 'intro' | 'hero' | 'feed' | 'journey' | 'world' | 'profile' | 'level' | 'lesson' | 'conversation' | 'edit-profile' | 'language-select' | 'settings' | 'account'
 type MainView = 'feed' | 'journey' | 'profile'
@@ -125,10 +126,12 @@ function Wave({ active = false }: { active?: boolean }) { return <div className=
 
 function App() {
   const [view, setView] = useState<View>('welcome')
+  const [appReady, setAppReady] = useState(false)
+  const [onboardingComplete, setOnboardingComplete] = useState(false)
   const [language, setLanguage] = useState('English')
   const [name, setName] = useState('')
   const [goal, setGoal] = useState('')
-  const [startingChoice, setStartingChoice] = useState<'scratch' | 'check' | ''>('')
+  const [startingChoice, setStartingChoice] = useState<StartingChoice>('')
   const [checkStep, setCheckStep] = useState(0)
   const [checkAnswers, setCheckAnswers] = useState<(number | null)[]>([null, null, null, null, null])
   const [starterAnswer, setStarterAnswer] = useState<number | null>(null)
@@ -157,6 +160,53 @@ function App() {
   const chunks = useRef<Blob[]>([])
   const audio = useRef<HTMLAudioElement | null>(null)
   const mission = missions[missionId - 1]
+
+  useEffect(() => {
+    let active = true
+    void loadAppState().then((state) => {
+      if (!active) return
+      if (state) {
+        setName(state.name)
+        setLanguage(state.language)
+        setGoal(state.goal)
+        setStartingChoice(state.startingChoice)
+        setCheckAnswers(state.checkAnswers)
+        setStarterAnswer(state.starterAnswer)
+        setHeroOptions(state.heroOptions)
+        setActiveLevel(state.activeLevel)
+        setCompleted(state.completed)
+        setConversationDone(state.conversationDone)
+        setSoundEffects(state.soundEffects)
+        setPracticeReminders(state.practiceReminders)
+        setOnboardingComplete(state.onboardingComplete)
+        setView(state.onboardingComplete ? 'feed' : 'welcome')
+      }
+      setAppReady(true)
+    })
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    if (!appReady) return
+    const timer = window.setTimeout(() => {
+      void saveAppState({
+        name,
+        language,
+        goal,
+        startingChoice,
+        checkAnswers,
+        starterAnswer,
+        heroOptions,
+        activeLevel,
+        completed,
+        conversationDone,
+        soundEffects,
+        practiceReminders,
+        onboardingComplete,
+      })
+    }, 350)
+    return () => window.clearTimeout(timer)
+  }, [activeLevel, appReady, checkAnswers, completed, conversationDone, goal, heroOptions, language, name, onboardingComplete, practiceReminders, soundEffects, starterAnswer, startingChoice])
 
   useEffect(() => {
     if (!recording) return
@@ -199,6 +249,8 @@ function App() {
 
   const lessonProps = { mission, step: lessonStep, answer, onAnswer: setAnswer, recording, recorded, seconds, typed, typedText, selfChecks, audioPlaying, onRecord: toggleRecording, onRecordAgain: recordAgain, onPlay: playRecording, onTyped: () => setTyped((v) => !v), onText: setTypedText, onCheck: (index: number) => setSelfChecks((v) => v.map((x, i) => i === index ? !x : x)), onExit: () => setExitOpen(true), onNext: () => setLessonStep((v) => Math.min(8, v + 1)), onFinish: finishMission, onFeed: () => setView('feed') }
 
+  if (!appReady) return <main className="stage"><section className="phone"><div className="sync-splash"><Logo/><span>Loading your progress…</span></div></section></main>
+
   return <main className="stage"><section className={`phone view-${view}`}>
     {view === 'welcome' && <Welcome onNext={() => setView('language')}/>}
     {view === 'language' && <Language value={language} onChange={setLanguage} onBack={() => setView('welcome')} onNext={() => setView('personalize')}/>}
@@ -208,7 +260,17 @@ function App() {
     {view === 'recommendation' && <Recommendation onBack={() => setView('starting')} onNext={() => { setIntroReturn('recommendation'); setView('intro') }}/>}
     {view === 'starter' && <Starter answer={starterAnswer} onAnswer={setStarterAnswer} onBack={() => setView('starting')} onNext={() => { setIntroReturn('starter'); setView('intro') }}/>}
     {view === 'intro' && <Intro name={name || 'Alex'} onBack={() => setView(introReturn)} onNext={() => { setHeroReturn('feed'); setView('hero') }}/>}
-    {view === 'hero' && <HeroBuilder part={heroPart} options={heroOptions} onOption={(option) => setHeroOptions((v) => v.map((x, i) => i === heroPart ? option : x))} onBack={() => heroPart ? setHeroPart(heroPart - 1) : setView(heroReturn === 'profile' ? 'profile' : 'intro')} onNext={() => heroPart < 3 ? setHeroPart(heroPart + 1) : setView(heroReturn)}/>}
+    {view === 'hero' && <HeroBuilder
+      part={heroPart}
+      options={heroOptions}
+      onOption={(option) => setHeroOptions((v) => v.map((x, i) => i === heroPart ? option : x))}
+      onBack={() => heroPart ? setHeroPart(heroPart - 1) : setView(heroReturn === 'profile' ? 'profile' : 'intro')}
+      onNext={() => {
+        if (heroPart < 3) { setHeroPart(heroPart + 1); return }
+        if (heroReturn === 'feed') setOnboardingComplete(true)
+        setView(heroReturn)
+      }}
+    />}
     {view === 'feed' && <Feed name={name || 'Alex'} completed={completed} onMission={() => openMission(completed.length >= 20 ? 1 : completed.length + 1)} onNav={setView}/>}
     {view === 'journey' && <Journey completed={completed} onWorld={() => setView('world')} onNav={setView}/>}
     {view === 'world' && <WorldOverview completed={completed} onBack={() => setView('journey')} onLevel={selectLevel}/>}
@@ -308,7 +370,7 @@ function Settings({ soundEffects, reminders, onSound, onReminders, onBack, onAcc
 
 function AccountSettings({ onBack }: { onBack: () => void }) {
   const [deleteOpen, setDeleteOpen] = useState(false)
-  return <div className="concept-screen settings-screen"><Top title="Account settings" onBack={onBack}/><div className="account-email"><small>Email</small><b>alex@example.com</b></div><button className="delete-account" onClick={() => setDeleteOpen(true)}>⌫ Delete account <Icon name="arrow" size={16}/></button>{deleteOpen && <div className="modal-backdrop"><div className="exit-modal danger-modal"><h2>Delete account?</h2><p>Prototype only. No account data will be deleted.</p><button className="primary" onClick={() => setDeleteOpen(false)}>Keep account</button><button className="secondary" onClick={() => setDeleteOpen(false)}>Delete account</button></div></div>}</div>
+  return <div className="concept-screen settings-screen"><Top title="Account settings" onBack={onBack}/><div className="account-email"><small>Account</small><b>TestFlight guest</b><p>{backendConfigured ? 'Progress is synced securely.' : 'Progress is stored on this device.'}</p></div><button className="delete-account" onClick={() => setDeleteOpen(true)}>⌫ Delete account <Icon name="arrow" size={16}/></button>{deleteOpen && <div className="modal-backdrop"><div className="exit-modal danger-modal"><h2>Delete account?</h2><p>Account deletion will be enabled before public release.</p><button className="primary" onClick={() => setDeleteOpen(false)}>Keep account</button><button className="secondary" onClick={() => setDeleteOpen(false)}>Close</button></div></div>}</div>
 }
 
 type MentorPhase = 'name' | 'review-name' | 'waiting' | 'country' | 'review-country' | 'correction' | 'feeling' | 'review-feeling' | 'final' | 'complete'
