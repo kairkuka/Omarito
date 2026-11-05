@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
-type View = 'welcome' | 'language' | 'personalize' | 'starter' | 'intro' | 'hero' | 'feed' | 'journey' | 'world' | 'profile' | 'level' | 'lesson'
+type View = 'welcome' | 'language' | 'personalize' | 'starting' | 'level-check' | 'recommendation' | 'starter' | 'intro' | 'hero' | 'feed' | 'journey' | 'world' | 'profile' | 'level' | 'lesson' | 'conversation' | 'edit-profile' | 'language-select' | 'settings' | 'account'
 type MainView = 'feed' | 'journey' | 'profile'
 type IconName = 'arrow' | 'back' | 'check' | 'close' | 'edit' | 'gear' | 'home' | 'journey' | 'keyboard' | 'mic' | 'pause' | 'play' | 'profile' | 'sound' | 'spark'
 
@@ -72,6 +72,13 @@ const languages = [
   ['flag-id.png', 'Indonesian'], ['flag-kz.png', 'Kazakh'], ['flag-ru.png', 'Russian'],
 ]
 const goals = ['Everyday conversations', 'Work and collaboration', 'Travel and meeting people']
+const levelCheckTasks = [
+  { title: 'Choose the word for the picture.', prompt: '☕', options: ['Coffee', 'Tea', 'Water'], correct: 0 },
+  { title: 'Choose the missing word.', prompt: 'Alex and Sam ___ friends.', options: ['is', 'are', 'am'], correct: 1 },
+  { title: 'Listen and choose what you hear.', prompt: 'audio', options: ['My name is Alex.', 'My name is Anna.', 'My name is Sam.'], correct: 0 },
+  { title: 'Choose the opposite.', prompt: 'Hot', options: ['Cold', 'Large', 'Fast'], correct: 0 },
+  { title: 'Choose the missing word.', prompt: 'Yesterday, I ___ to school.', options: ['go', 'went', 'going'], correct: 1 },
+]
 
 function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
   const p: Record<IconName, ReactNode> = {
@@ -121,10 +128,14 @@ function App() {
   const [language, setLanguage] = useState('English')
   const [name, setName] = useState('')
   const [goal, setGoal] = useState('')
+  const [startingChoice, setStartingChoice] = useState<'scratch' | 'check' | ''>('')
+  const [checkStep, setCheckStep] = useState(0)
+  const [checkAnswers, setCheckAnswers] = useState<(number | null)[]>([null, null, null, null, null])
   const [starterAnswer, setStarterAnswer] = useState<number | null>(null)
   const [heroPart, setHeroPart] = useState(0)
   const [heroOptions, setHeroOptions] = useState([0, 0, 0, 0])
   const [heroReturn, setHeroReturn] = useState<View>('feed')
+  const [introReturn, setIntroReturn] = useState<View>('starter')
   const [activeLevel, setActiveLevel] = useState(1)
   const [missionId, setMissionId] = useState(1)
   const [lessonStep, setLessonStep] = useState(0)
@@ -139,6 +150,9 @@ function App() {
   const [exitOpen, setExitOpen] = useState(false)
   const [audioUrl, setAudioUrl] = useState('')
   const [audioPlaying, setAudioPlaying] = useState(false)
+  const [conversationDone, setConversationDone] = useState(false)
+  const [soundEffects, setSoundEffects] = useState(true)
+  const [practiceReminders, setPracticeReminders] = useState(false)
   const recorder = useRef<MediaRecorder | null>(null)
   const chunks = useRef<Blob[]>([])
   const audio = useRef<HTMLAudioElement | null>(null)
@@ -181,21 +195,30 @@ function App() {
   function openMission(id: number) { setMissionId(id); setLessonStep(0); setView('lesson') }
   function finishMission() { setCompleted((items) => items.includes(missionId) ? items : [...items, missionId]); setView('world') }
   function selectLevel(id: number) { setActiveLevel(id); setView('level') }
+  function startLevelCheck() { setCheckStep(0); setCheckAnswers([null, null, null, null, null]); setView('level-check') }
 
   const lessonProps = { mission, step: lessonStep, answer, onAnswer: setAnswer, recording, recorded, seconds, typed, typedText, selfChecks, audioPlaying, onRecord: toggleRecording, onRecordAgain: recordAgain, onPlay: playRecording, onTyped: () => setTyped((v) => !v), onText: setTypedText, onCheck: (index: number) => setSelfChecks((v) => v.map((x, i) => i === index ? !x : x)), onExit: () => setExitOpen(true), onNext: () => setLessonStep((v) => Math.min(8, v + 1)), onFinish: finishMission, onFeed: () => setView('feed') }
 
   return <main className="stage"><section className={`phone view-${view}`}>
     {view === 'welcome' && <Welcome onNext={() => setView('language')}/>}
     {view === 'language' && <Language value={language} onChange={setLanguage} onBack={() => setView('welcome')} onNext={() => setView('personalize')}/>}
-    {view === 'personalize' && <Personalize name={name} goal={goal} onName={setName} onGoal={setGoal} onBack={() => setView('language')} onNext={() => setView('starter')}/>}
-    {view === 'starter' && <Starter answer={starterAnswer} onAnswer={setStarterAnswer} onBack={() => setView('personalize')} onNext={() => setView('intro')}/>}
-    {view === 'intro' && <Intro name={name || 'Alex'} onBack={() => setView('starter')} onNext={() => { setHeroReturn('feed'); setView('hero') }}/>}
+    {view === 'personalize' && <Personalize name={name} goal={goal} onName={setName} onGoal={setGoal} onBack={() => setView('language')} onNext={() => setView('starting')}/>}
+    {view === 'starting' && <StartingPoint choice={startingChoice} onChoice={setStartingChoice} onBack={() => setView('personalize')} onNext={() => startingChoice === 'check' ? startLevelCheck() : setView('starter')}/>}
+    {view === 'level-check' && <LevelCheck step={checkStep} answer={checkAnswers[checkStep]} onAnswer={(value) => setCheckAnswers((items) => items.map((item, index) => index === checkStep ? value : item))} onBack={() => setView('starting')} onNext={() => checkStep < levelCheckTasks.length - 1 ? setCheckStep((value) => value + 1) : setView('recommendation')}/>}
+    {view === 'recommendation' && <Recommendation onBack={() => setView('starting')} onNext={() => { setIntroReturn('recommendation'); setView('intro') }}/>}
+    {view === 'starter' && <Starter answer={starterAnswer} onAnswer={setStarterAnswer} onBack={() => setView('starting')} onNext={() => { setIntroReturn('starter'); setView('intro') }}/>}
+    {view === 'intro' && <Intro name={name || 'Alex'} onBack={() => setView(introReturn)} onNext={() => { setHeroReturn('feed'); setView('hero') }}/>}
     {view === 'hero' && <HeroBuilder part={heroPart} options={heroOptions} onOption={(option) => setHeroOptions((v) => v.map((x, i) => i === heroPart ? option : x))} onBack={() => heroPart ? setHeroPart(heroPart - 1) : setView(heroReturn === 'profile' ? 'profile' : 'intro')} onNext={() => heroPart < 3 ? setHeroPart(heroPart + 1) : setView(heroReturn)}/>}
     {view === 'feed' && <Feed name={name || 'Alex'} completed={completed} onMission={() => openMission(completed.length >= 20 ? 1 : completed.length + 1)} onNav={setView}/>}
     {view === 'journey' && <Journey completed={completed} onWorld={() => setView('world')} onNav={setView}/>}
     {view === 'world' && <WorldOverview completed={completed} onBack={() => setView('journey')} onLevel={selectLevel}/>}
-    {view === 'profile' && <Profile name={name || 'Alex'} language={language} completed={completed} heroOptions={heroOptions} onEdit={() => { setHeroPart(0); setHeroReturn('profile'); setView('hero') }} onNav={setView}/>}
-    {view === 'level' && <LevelScreen levelId={activeLevel} completed={completed} onBack={() => setView('world')} onMission={openMission}/>}
+    {view === 'profile' && <Profile name={name || 'Alex'} language={language} completed={completed} heroOptions={heroOptions} conversationDone={conversationDone} onEditProfile={() => setView('edit-profile')} onLanguage={() => setView('language-select')} onSettings={() => setView('settings')} onEditHero={() => { setHeroPart(0); setHeroReturn('profile'); setView('hero') }} onNav={setView}/>}
+    {view === 'edit-profile' && <EditProfile name={name || 'Alex'} onBack={() => setView('profile')} onSave={(value) => { setName(value); setView('profile') }}/>}
+    {view === 'language-select' && <LanguageSelect value={language} onBack={() => setView('profile')} onSave={(value) => { setLanguage(value); setView('profile') }}/>}
+    {view === 'settings' && <Settings soundEffects={soundEffects} reminders={practiceReminders} onSound={setSoundEffects} onReminders={setPracticeReminders} onBack={() => setView('profile')} onAccount={() => setView('account')}/>}
+    {view === 'account' && <AccountSettings onBack={() => setView('settings')}/>}
+    {view === 'level' && <LevelScreen levelId={activeLevel} completed={completed} conversationDone={conversationDone} onBack={() => setView('world')} onMission={openMission} onConversation={() => setView('conversation')}/>}
+    {view === 'conversation' && <MentorConversation name={name || 'Alex'} onBack={() => setView('level')} onDone={() => { setConversationDone(true); setView('level') }}/>}
     {view === 'lesson' && <Lesson {...lessonProps}/>}
     {exitOpen && <ExitModal onStay={() => setExitOpen(false)} onLeave={() => { setExitOpen(false); setView('feed') }}/>}
   </section></main>
@@ -204,7 +227,31 @@ function App() {
 function Welcome({ onNext }: { onNext: () => void }) { return <div className="onboarding welcome"><Logo/><div className="welcome-art"><span/><img src={`${A}/welcome-leopard.png`} alt="Snow leopard holding a globe"/></div><h1>Learn languages.<br/>Build <em>your legend.</em></h1><p>Complete missions, explore new worlds, and grow with your own leopard.</p><button className="primary" onClick={onNext}>Get started <Icon name="arrow"/></button><small>By continuing, you agree to our Terms of Service and Privacy Policy</small></div> }
 function Top({ title, onBack, step }: { title: string; onBack: () => void; step?: string }) { return <header className="top"><button onClick={onBack} aria-label="Back"><Icon name="back"/></button><span>{step || title}</span><i/></header> }
 function Language({ value, onChange, onBack, onNext }: { value: string; onChange: (v: string) => void; onBack: () => void; onNext: () => void }) { return <div className="onboarding form-screen"><Top title="Your starting point" onBack={onBack}/><div className="form-copy"><span className="kicker">STEP 1 OF 2</span><h1>Choose your language</h1><p>What would you like to learn?</p></div><div className="choice-list">{languages.map(([flag, label]) => <button className={value === label ? 'selected' : ''} onClick={() => onChange(label)} key={label}><img src={`${A}/${flag}`} alt=""/><span>{label}</span><i>{value === label && <Icon name="check" size={15}/>}</i></button>)}</div><button className="primary pinned" onClick={onNext}>Continue</button></div> }
-function Personalize({ name, goal, onName, onGoal, onBack, onNext }: { name: string; goal: string; onName: (v: string) => void; onGoal: (v: string) => void; onBack: () => void; onNext: () => void }) { return <div className="onboarding form-screen"><Top title="Your starting point" onBack={onBack}/><div className="form-copy"><span className="kicker">STEP 2 OF 2</span><h1>Make it personal</h1><label>Your name<input value={name} onChange={(e) => onName(e.target.value)} placeholder="Your name"/></label><p>Where would more English help?</p></div><div className="choice-list goal-list">{goals.map((item) => <button className={goal === item ? 'selected' : ''} onClick={() => onGoal(item)} key={item}><span>{item}</span><i>{goal === item && <Icon name="check" size={15}/>}</i></button>)}</div><button className="primary pinned" disabled={!name.trim() || !goal} onClick={onNext}>Try a tiny listening check</button></div> }
+function Personalize({ name, goal, onName, onGoal, onBack, onNext }: { name: string; goal: string; onName: (v: string) => void; onGoal: (v: string) => void; onBack: () => void; onNext: () => void }) { return <div className="onboarding form-screen"><Top title="Your starting point" onBack={onBack}/><div className="form-copy"><span className="kicker">STEP 2 OF 2</span><h1>Make it personal</h1><label>Your name<input value={name} onChange={(e) => onName(e.target.value)} placeholder="Your name"/></label><p>Where would more English help?</p></div><div className="choice-list goal-list">{goals.map((item) => <button className={goal === item ? 'selected' : ''} onClick={() => onGoal(item)} key={item}><span>{item}</span><i>{goal === item && <Icon name="check" size={15}/>}</i></button>)}</div><button className="primary pinned" disabled={!name.trim() || !goal} onClick={onNext}>Continue</button></div> }
+
+function StartingPoint({ choice, onChoice, onBack, onNext }: { choice: 'scratch' | 'check' | ''; onChoice: (value: 'scratch' | 'check') => void; onBack: () => void; onNext: () => void }) {
+  return <div className="concept-screen starting-point"><div className="concept-hero"><Top title="English course" onBack={onBack}/><h1>Where should we start?</h1><p>🇬🇧 English course</p></div><div className="start-options"><button className={choice === 'scratch' ? 'selected' : ''} onClick={() => onChoice('scratch')}><span>⚑</span><div><b>Start from scratch</b><small>Learn the basics, one step at a time.</small></div><i>{choice === 'scratch' && <Icon name="check" size={14}/>}</i></button><button className={choice === 'check' ? 'selected' : ''} onClick={() => onChoice('check')}><span>☷</span><div><b>Check my level</b><small>Find a starting point that fits you.</small></div><i>{choice === 'check' && <Icon name="check" size={14}/>}</i></button></div><small className="concept-note">The level check is optional.</small><button className="primary concept-foot" disabled={!choice} onClick={onNext}>Continue</button></div>
+}
+
+function LevelCheck({ step, answer, onAnswer, onBack, onNext }: { step: number; answer: number | null; onAnswer: (value: number) => void; onBack: () => void; onNext: () => void }) {
+  const [exitOpen, setExitOpen] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const task = levelCheckTasks[step]
+  function playPrompt() {
+    if (!('speechSynthesis' in window)) return
+    window.speechSynthesis.cancel(); setPlaying(true)
+    const utterance = new SpeechSynthesisUtterance('My name is Alex.')
+    utterance.lang = 'en-US'; utterance.onend = () => setPlaying(false); window.speechSynthesis.speak(utterance)
+  }
+  return <div className="concept-screen level-check"><header className="check-top"><button onClick={() => setExitOpen(true)}><Icon name="back"/></button><span>Find your starting point</span><small>{step + 1} of {levelCheckTasks.length}</small></header><div className="check-progress"><i style={{ width: `${(step + 1) / levelCheckTasks.length * 100}%` }}/></div><h2>{task.title}</h2><div className={`check-prompt ${task.prompt === 'audio' ? 'audio' : ''}`}>{task.prompt === 'audio' ? <button onClick={playPrompt}><Icon name={playing ? 'pause' : 'play'}/><Wave active={playing}/></button> : task.prompt}</div><div className="check-options">{task.options.map((option, index) => <button className={answer === index ? 'selected' : ''} onClick={() => onAnswer(index)} key={option}>{option}{answer === index && <Icon name="check" size={15}/>}</button>)}</div><button className={`unsure ${answer === -1 ? 'selected' : ''}`} onClick={() => onAnswer(-1)}>I’m not sure</button><button className="primary concept-foot" disabled={answer === null} onClick={onNext}>Continue</button>{exitOpen && <div className="modal-backdrop"><div className="exit-modal"><h2>Leave the level check?</h2><p>Your answers are saved for this session.</p><button className="primary" onClick={() => setExitOpen(false)}>Keep going</button><button className="secondary" onClick={onBack}>Leave</button></div></div>}</div>
+}
+
+function Recommendation({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+  const [loading, setLoading] = useState(true)
+  useEffect(() => { const timer = window.setTimeout(() => setLoading(false), 850); return () => window.clearTimeout(timer) }, [])
+  if (loading) return <div className="concept-screen recommendation"><Top title="Find your starting point" onBack={onBack}/><div className="recommend-loading"><i/><h1>Finding your starting point…</h1><p>A place to begin your English journey.</p></div></div>
+  return <div className="concept-screen recommendation"><Top title="Your starting point" onBack={onBack}/><div className="recommend-card"><small>Suggested for you</small><span>🌱</span><h1>NOVA</h1><p>Start with everyday basics.</p></div><p className="recommend-copy">A suggested place to begin, not a limit on where you can go.</p><button className="primary concept-foot" onClick={onNext}>Start learning</button></div>
+}
 
 function Scene({ compact = false }: { compact?: boolean }) {
   const [failed, setFailed] = useState(false)
@@ -237,9 +284,87 @@ function Feed({ name, completed, onMission, onNav }: { name: string; completed: 
 
 function Journey({ completed, onWorld, onNav }: { completed: number[]; onWorld: () => void; onNav: (v: View) => void }) { return <div className="app-view journey"><AppHeader subtitle="Map your progress"/><div className="view-title"><h1>Your journey</h1><p>Explore worlds. Build real-life language skills.</p></div><div className="world-orbit"><div className="orbit orbit-a"/><div className="orbit orbit-b"/><div className="orbit orbit-c"/><div className="orbit-center"><img src={`${A}/hero-standing.png`} alt="Your hero"/></div><button className="world-node noma" onClick={onWorld}><span>01</span><b>NOMA</b><small>{completed.length}/20</small></button><button className="world-node world-2" disabled><img src={`${A}/rocket.png`} alt=""/><b>World 2</b><small>Coming soon</small></button><button className="world-node world-3" disabled><span>✦</span><b>World 3</b><small>Locked</small></button><button className="world-node world-4" disabled><span>◌</span><b>World 4</b><small>Locked</small></button></div><div className="journey-summary"><span>World progress</span><b>{Math.round(completed.length / 20 * 100)}%</b><div><i style={{ width: `${completed.length / 20 * 100}%` }}/></div><small>NOMA · {completed.length} of 20 missions</small></div><BottomNav active="journey" onNav={onNav}/></div> }
 function WorldOverview({ completed, onBack, onLevel }: { completed: number[]; onBack: () => void; onLevel: (id: number) => void }) { return <div className="world-screen"><div className="world-hero"><Top title="NOMA" onBack={onBack}/><span className="kicker light">WORLD 01</span><h1>NOMA</h1><p>Find your voice. Make plans. Tell stories. Work things out.</p><div className="world-progress"><span>World progress</span><b>{completed.length}/20</b><div><i style={{ width: `${completed.length / 20 * 100}%` }}/></div></div></div><section className="level-cards"><h2>Levels</h2>{levels.map((level) => { const done = missions.filter((m) => m.level === level.id && completed.includes(m.id)).length; return <button key={level.id} onClick={() => onLevel(level.id)} style={{ '--level-color': level.color } as CSSProperties}><span>{level.id}</span><div><small>LEVEL {level.id}</small><b>{level.title}</b><p>{level.subtitle}</p><i><em style={{ width: `${done * 20}%` }}/></i></div><strong>+{[12,18,24,30][level.id - 1]}%</strong><Icon name="arrow" size={18}/></button>})}</section></div> }
-function LevelScreen({ levelId, completed, onBack, onMission }: { levelId: number; completed: number[]; onBack: () => void; onMission: (id: number) => void }) { const level = levels[levelId - 1]; const items = missions.filter((m) => m.level === levelId); const completeCount = items.filter((m) => completed.includes(m.id)).length; const medals = ['badge-bronze.png','badge-silver.png','badge-gold.png','badge-legend.png']; return <div className="level-screen"><div className="level-hero" style={{ '--level-color': level.color } as CSSProperties}><Top title={`Level ${level.id}`} onBack={onBack}/><span className="kicker light">LEVEL {level.id}</span><h1>{level.title}</h1><p>{level.subtitle}</p><div className="level-progress-label"><span>Level progress</span><b>{1000 + completeCount * 160} / 1800</b></div><div className="level-progress"><i style={{ width: `${Math.min(100, 55 + completeCount * 9)}%` }}/></div><div className="medals">{['Bronze','Silver','Gold','Legend'].map((label, i) => <span key={label}><img src={`${A}/${medals[i]}`} alt=""/><small>{label}</small></span>)}</div></div><div className="mission-list"><h2>Missions <small>{completeCount}/5</small></h2>{items.map((item, i) => { const done = completed.includes(item.id); const percent = done ? 100 : [64,52,40,28,12][i]; return <button key={item.id} onClick={() => onMission(item.id)}><span className={done ? 'done' : ''}>{done ? <Icon name="check" size={15}/> : String(i + 1).padStart(2,'0')}</span><div><b>{item.title}</b><small>Listen · Speak · Practice</small></div><em>{percent}%</em><strong>+{[12,15,18,21,24][i]}%</strong></button>})}</div></div> }
+function LevelScreen({ levelId, completed, conversationDone, onBack, onMission, onConversation }: { levelId: number; completed: number[]; conversationDone: boolean; onBack: () => void; onMission: (id: number) => void; onConversation: () => void }) { const level = levels[levelId - 1]; const items = missions.filter((m) => m.level === levelId); const completeCount = items.filter((m) => completed.includes(m.id)).length; const medals = ['badge-bronze.png','badge-silver.png','badge-gold.png','badge-legend.png']; return <div className="level-screen"><div className="level-hero" style={{ '--level-color': level.color } as CSSProperties}><Top title={`Level ${level.id}`} onBack={onBack}/><span className="kicker light">LEVEL {level.id}</span><h1>{level.title}</h1><p>{level.subtitle}</p><div className="level-progress-label"><span>Level progress</span><b>{1000 + completeCount * 160 + (conversationDone ? 20 : 0)} / 1800</b></div><div className="level-progress"><i style={{ width: `${Math.min(100, 55 + completeCount * 9 + (conversationDone ? 2 : 0))}%` }}/></div><div className="medals">{['Bronze','Silver','Gold','Legend'].map((label, i) => <span key={label}><img src={`${A}/${medals[i]}`} alt=""/><small>{label}</small></span>)}</div></div><div className="mission-list">{levelId === 1 && <button className="mentor-card" onClick={onConversation}><img src={`${A}/hero-standing.png`} alt="Omarito"/><div><small>SPEAK WITH OMARITO · INTRODUCTIONS</small><b>Let’s introduce ourselves</b><p>Practice your first conversation: name, country, and how you feel.</p></div><strong>{conversationDone ? 'Done' : 'Start talking'}</strong></button>}<h2>Missions <small>{completeCount}/5</small></h2>{items.map((item, i) => { const done = completed.includes(item.id); const percent = done ? 100 : [64,52,40,28,12][i]; return <button key={item.id} onClick={() => onMission(item.id)}><span className={done ? 'done' : ''}>{done ? <Icon name="check" size={15}/> : String(i + 1).padStart(2,'0')}</span><div><b>{item.title}</b><small>Listen · Speak · Practice</small></div><em>{percent}%</em><strong>+{[12,15,18,21,24][i]}%</strong></button>})}</div></div> }
 
-function Profile({ name, language, completed, heroOptions, onEdit, onNav }: { name: string; language: string; completed: number[]; heroOptions: number[]; onEdit: () => void; onNav: (v: View) => void }) { return <div className="app-view profile"><header className="profile-top"><span/><h1>Profile</h1><button aria-label="Settings"><Icon name="gear"/></button></header><div className="profile-head"><Avatar options={heroOptions}/><div><h2>{name} <button onClick={onEdit} aria-label="Edit profile"><Icon name="edit" size={15}/></button></h2><p>Learning every day</p></div></div><div className="account-progress"><span>Account level</span><b>Level 3</b><div><i style={{ width: '62%' }}/></div><small>{500 + completed.length * 50} / 800 XP</small></div><div className="stat-row"><span><b>500</b><small>XP</small></span><span><b>120</b><small>Lingo</small></span><span><b>3</b><small>day streak</small></span></div><div className="learning-card"><span>Learning</span><h2><img src={`${A}/flag-uk.png`} alt=""/> {language}</h2><p>Beginner · A1</p><hr/><div className="learning-world"><span>NOMA</span><b>World progress 40%</b></div><div><i style={{ width: '40%' }}/></div></div><button className="edit-hero-wide" onClick={onEdit}><Avatar options={heroOptions}/>Customize your hero <Icon name="arrow"/></button><BottomNav active="profile" onNav={onNav}/></div> }
+function Profile({ name, language, completed, heroOptions, conversationDone, onEditProfile, onLanguage, onSettings, onEditHero, onNav }: { name: string; language: string; completed: number[]; heroOptions: number[]; conversationDone: boolean; onEditProfile: () => void; onLanguage: () => void; onSettings: () => void; onEditHero: () => void; onNav: (v: View) => void }) { const selectedLanguage = languages.find(([, label]) => label === language) || languages[0]; const xp = 500 + completed.length * 50 + (conversationDone ? 20 : 0); const lingo = 120 + (conversationDone ? 5 : 0); return <div className="app-view profile"><header className="profile-top"><span/><h1>Profile</h1><button aria-label="Settings" onClick={onSettings}><Icon name="gear"/></button></header><div className="profile-head"><Avatar options={heroOptions}/><div><h2>{name} <button onClick={onEditProfile} aria-label="Edit profile"><Icon name="edit" size={15}/></button></h2><p>Learning every day</p></div></div><div className="account-progress"><span>Account level</span><b>Level 3</b><div><i style={{ width: `${Math.min(100, xp / 8)}%` }}/></div><small>{xp} / 800 XP</small></div><div className="stat-row"><span><b>{xp}</b><small>XP</small></span><span><b>{lingo}</b><small>Lingo</small></span><span><b>3</b><small>day streak</small></span></div><button className="learning-card learning-button" onClick={onLanguage}><span>Learning</span><h2><img src={`${A}/${selectedLanguage[0]}`} alt=""/> {language}<Icon name="arrow" size={16}/></h2><p>Beginner · A1</p><hr/><div className="learning-world"><span>NOVA</span><b>World progress 40%</b></div><div><i style={{ width: '40%' }}/></div></button><button className="edit-hero-wide" onClick={onEditHero}><Avatar options={heroOptions}/>Customize your hero <Icon name="arrow"/></button><BottomNav active="profile" onNav={onNav}/></div> }
+
+function EditProfile({ name, onBack, onSave }: { name: string; onBack: () => void; onSave: (value: string) => void }) {
+  const [value, setValue] = useState(name)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  function save() { if (!value.trim()) { setError('Enter a name to continue.'); return } setSaving(true); window.setTimeout(() => onSave(value.trim()), 450) }
+  return <div className="concept-screen settings-screen"><Top title="Edit profile" onBack={onBack}/><div className="edit-profile-art"><Avatar/><button aria-label="Change avatar"><Icon name="edit" size={15}/></button></div><label className="field-label">Name<input value={value} onChange={(event) => { setValue(event.target.value); setError('') }} maxLength={32}/></label>{error && <p className="field-error">{error}</p>}<button className="primary concept-foot" disabled={saving || value.trim() === name} onClick={save}>{saving ? 'Saving…' : 'Save'}</button><button className="secondary" onClick={onBack}>Cancel</button></div>
+}
+
+function LanguageSelect({ value, onBack, onSave }: { value: string; onBack: () => void; onSave: (value: string) => void }) {
+  const [selected, setSelected] = useState(value)
+  return <div className="concept-screen language-select"><div className="concept-hero"><Top title="Choose your language" onBack={onBack}/><h1>Choose your language</h1><p>What would you like to learn?</p></div><div className="language-options">{languages.map(([flag, label], index) => <button className={selected === label ? 'selected' : ''} onClick={() => setSelected(label)} key={label}><img src={`${A}/${flag}`} alt=""/><span><b>{label}</b><small>{index ? 'NOVA · 15%' : 'NOVA · 40%'}</small></span><i>{selected === label && <Icon name="check" size={14}/>}</i></button>)}</div><button className="primary concept-foot" onClick={() => onSave(selected)}>Continue</button></div>
+}
+
+function Settings({ soundEffects, reminders, onSound, onReminders, onBack, onAccount }: { soundEffects: boolean; reminders: boolean; onSound: (value: boolean) => void; onReminders: (value: boolean) => void; onBack: () => void; onAccount: () => void }) {
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  return <div className="concept-screen settings-screen"><Top title="Settings" onBack={onBack}/><div className="settings-list"><label><span><Icon name="sound"/>Sound effects</span><input type="checkbox" checked={soundEffects} onChange={(event) => onSound(event.target.checked)}/><i/></label><label><span>○ Practice reminders</span><input type="checkbox" checked={reminders} onChange={(event) => onReminders(event.target.checked)}/><i/></label><button onClick={onAccount}><span><Icon name="profile"/>Account</span><Icon name="arrow" size={16}/></button><button><span>◇ Privacy policy</span><Icon name="arrow" size={16}/></button><button><span>□ Terms of service</span><Icon name="arrow" size={16}/></button><button onClick={() => setLogoutOpen(true)}><span>↪ Log out</span><Icon name="arrow" size={16}/></button></div>{logoutOpen && <div className="modal-backdrop"><div className="exit-modal"><h2>Log out?</h2><p>You can sign back in anytime.</p><button className="primary" onClick={() => setLogoutOpen(false)}>Stay signed in</button><button className="secondary" onClick={() => setLogoutOpen(false)}>Log out</button></div></div>}</div>
+}
+
+function AccountSettings({ onBack }: { onBack: () => void }) {
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  return <div className="concept-screen settings-screen"><Top title="Account settings" onBack={onBack}/><div className="account-email"><small>Email</small><b>alex@example.com</b></div><button className="delete-account" onClick={() => setDeleteOpen(true)}>⌫ Delete account <Icon name="arrow" size={16}/></button>{deleteOpen && <div className="modal-backdrop"><div className="exit-modal danger-modal"><h2>Delete account?</h2><p>Prototype only. No account data will be deleted.</p><button className="primary" onClick={() => setDeleteOpen(false)}>Keep account</button><button className="secondary" onClick={() => setDeleteOpen(false)}>Delete account</button></div></div>}</div>
+}
+
+type MentorPhase = 'name' | 'review-name' | 'waiting' | 'country' | 'review-country' | 'correction' | 'feeling' | 'review-feeling' | 'final' | 'complete'
+type MentorKey = 'name' | 'country' | 'feeling'
+
+function MentorConversation({ name, onBack, onDone }: { name: string; onBack: () => void; onDone: () => void }) {
+  const [phase, setPhase] = useState<MentorPhase>('name')
+  const [recording, setRecording] = useState(false)
+  const [seconds, setSeconds] = useState(0)
+  const [typed, setTyped] = useState(false)
+  const [draft, setDraft] = useState('')
+  const [error, setError] = useState<'mic' | 'no-speech' | ''>('')
+  const [audioUrl, setAudioUrl] = useState('')
+  const [responses, setResponses] = useState<Record<MentorKey, string>>({ name: `Hi, I’m ${name}.`, country: 'I from Kazakhstan.', feeling: 'I’m feeling good.' })
+  const mentorRecorder = useRef<MediaRecorder | null>(null)
+  const mentorChunks = useRef<Blob[]>([])
+  const mentorStream = useRef<MediaStream | null>(null)
+
+  const key: MentorKey = phase.includes('country') || phase === 'correction' ? 'country' : phase.includes('feeling') || phase === 'final' ? 'feeling' : 'name'
+  useEffect(() => { if (!recording) return; const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000); return () => window.clearInterval(timer) }, [recording])
+  useEffect(() => () => { mentorRecorder.current?.stop(); mentorStream.current?.getTracks().forEach((track) => track.stop()); if (audioUrl) URL.revokeObjectURL(audioUrl) }, [audioUrl])
+
+  function speak(text: string) { if (!('speechSynthesis' in window)) return; window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-US'; window.speechSynthesis.speak(utterance) }
+  function readyPhase(): MentorPhase { return key === 'name' ? 'review-name' : key === 'country' ? 'review-country' : 'review-feeling' }
+  async function toggleRecord() {
+    if (recording) {
+      mentorRecorder.current?.stop(); setRecording(false)
+      if (seconds < 1) { setError('no-speech'); return }
+      setPhase(readyPhase()); return
+    }
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') throw new Error('Microphone unavailable')
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); mentorStream.current = stream
+      const next = new MediaRecorder(stream); mentorChunks.current = []
+      next.ondataavailable = (event) => { if (event.data.size) mentorChunks.current.push(event.data) }
+      next.onstop = () => { if (mentorChunks.current.length) { if (audioUrl) URL.revokeObjectURL(audioUrl); setAudioUrl(URL.createObjectURL(new Blob(mentorChunks.current, { type: next.mimeType || 'audio/webm' }))) } stream.getTracks().forEach((track) => track.stop()) }
+      next.start(); mentorRecorder.current = next; setSeconds(0); setError(''); setRecording(true)
+    } catch { setError('mic'); setTyped(true) }
+  }
+  function submitTyped() { if (!draft.trim()) return; setResponses((items) => ({ ...items, [key]: draft.trim() })); setDraft(''); setTyped(false); setPhase(readyPhase()) }
+  function playRecorded() { if (audioUrl) void new Audio(audioUrl).play(); else speak(responses[key]) }
+  function sendReview() {
+    if (phase === 'review-name') { setPhase('waiting'); window.setTimeout(() => setPhase('country'), 750); return }
+    if (phase === 'review-country') { setPhase('correction'); return }
+    setPhase('final')
+  }
+  function resetInput() { setRecording(false); setSeconds(0); setTyped(false); setDraft(''); setError(''); if (phase.startsWith('review-')) setPhase(key) }
+
+  if (phase === 'complete') return <div className="mentor-complete"><h1>Conversation complete</h1><div className="reward-art"><img src={`${A}/badge-gold.png`} alt="Star reward"/><img src={`${A}/coin.png`} alt="Coin reward"/></div><h2>You introduced yourself!</h2><p>Nice work, {name}.</p><div className="reward-row"><span>⭐ +20 XP</span><span>🪙 +5 Lingo</span></div><div className="next-time"><small>For next time</small><b>Use “I’m” before your country.</b></div><button className="primary" onClick={onDone}>Continue</button><button className="secondary" onClick={() => { setPhase('name'); resetInput() }}>Practice again</button></div>
+
+  const afterName = !['name','review-name'].includes(phase)
+  const afterCountry = ['correction','feeling','review-feeling','final'].includes(phase)
+  return <div className="mentor-conversation"><header className="mentor-top"><button onClick={onBack}><Icon name="back"/></button><img src={`${A}/hero-head.png`} alt="Omarito"/><div><b>Omarito</b><small>Introductions</small></div></header><div className="mentor-thread"><MentorBubble label="Omarito" text={`Hi! I’m Omarito. What’s your name?`} onReplay={() => speak(`Hi! I’m Omarito. What’s your name?`)}/>{afterName && <MentorBubble mine label="You" text={responses.name} onReplay={() => speak(responses.name)}/>} {afterName && <MentorBubble label="Omarito" text={`Nice to meet you, ${name}! Where are you from?`} onReplay={() => speak(`Nice to meet you, ${name}! Where are you from?`)}/>} {afterCountry && <MentorBubble mine label="You" text={responses.country} onReplay={() => speak(responses.country)}/>} {afterCountry && <MentorBubble correction label="Try" text={`I’m from Kazakhstan.`} onReplay={() => speak(`I’m from Kazakhstan.`)}/>} {['feeling','review-feeling','final'].includes(phase) && <MentorBubble label="Omarito" text={`How are you feeling today, ${name}?`} onReplay={() => speak(`How are you feeling today, ${name}?`)}/>} {phase === 'final' && <MentorBubble mine label="You" text={responses.feeling} onReplay={() => speak(responses.feeling)}/>} {phase === 'final' && <MentorBubble label="Omarito" text={`Great! It was nice talking with you, ${name}.`} onReplay={() => speak(`Great! It was nice talking with you, ${name}.`)}/>}</div>{phase === 'waiting' ? <div className="mentor-wait"><i/><span>Omarito is thinking…</span></div> : phase === 'correction' ? <div className="mentor-actions"><button className="primary" onClick={() => setPhase('feeling')}>Continue</button></div> : phase === 'final' ? <div className="mentor-actions"><button className="primary" onClick={() => setPhase('complete')}>Finish practice</button></div> : phase.startsWith('review-') ? <div className="mentor-review"><b>Review your recording</b><button className="review-audio" onClick={playRecorded}><Icon name="play"/><Wave/><small>0:{String(Math.max(seconds, 4)).padStart(2, '0')}</small></button><p>{responses[key]}</p><div><button className="primary" onClick={sendReview}>Send</button><button className="secondary" onClick={resetInput}>Record again</button></div></div> : <div className="mentor-input">{error === 'no-speech' && <p className="mentor-error">I couldn’t hear you. Try again.</p>}{error === 'mic' && <p className="mentor-error">Allow microphone access or type your reply.</p>}{typed ? <div className="mentor-type"><input autoFocus value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="Type your reply…"/><button className="primary" disabled={!draft.trim()} onClick={submitTyped}>Send</button></div> : <button className={`mentor-mic ${recording ? 'recording' : ''}`} onClick={toggleRecord}><Icon name={recording ? 'pause' : 'mic'} size={28}/></button>}<b>{recording ? `${seconds}s · Tap to stop` : typed ? '' : 'Tap to speak'}</b><button className="type-toggle" onClick={() => { setTyped((value) => !value); setError('') }}><Icon name={typed ? 'mic' : 'keyboard'} size={16}/>{typed ? 'Use voice' : 'Type instead'}</button></div>}</div>
+}
+
+function MentorBubble({ label, text, mine = false, correction = false, onReplay }: { label: string; text: string; mine?: boolean; correction?: boolean; onReplay: () => void }) { return <div className={`mentor-message ${mine ? 'mine' : ''} ${correction ? 'correction' : ''}`}><small>{label}</small><p>{text}</p><button onClick={onReplay}><Icon name="sound" size={13}/> Replay{correction ? ' phrase' : ''}</button></div> }
 
 type LessonProps = { mission: Mission; step: number; answer: number | null; onAnswer: (v: number) => void; recording: boolean; recorded: boolean; seconds: number; typed: boolean; typedText: string; selfChecks: boolean[]; audioPlaying: boolean; onRecord: () => void; onRecordAgain: () => void; onPlay: () => void; onTyped: () => void; onText: (v: string) => void; onCheck: (i: number) => void; onExit: () => void; onNext: () => void; onFinish: () => void; onFeed: () => void }
 
