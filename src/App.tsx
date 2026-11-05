@@ -97,7 +97,6 @@ const heroFeatureAssets = {
   eyes: ['eyes-1.png', 'eyes-2.png', 'eyes-3.png', 'eyes-4.png', 'eyes-2.png', 'eyes-1.png'],
   nose: ['nose-1.png', 'nose-2.png', 'nose-3.png', 'nose-4.png', 'nose-5.png', 'nose-6.png'],
   mouth: ['mouth-1.png', 'mouth-2.png', 'mouth-3.png', 'mouth-4.png', 'mouth-5.png', 'mouth-6.png'],
-  clothes: ['clothes-hoodie.png', 'clothes-shirt.png', 'clothes-pants.png', 'clothes-shoes.png', 'clothes-shirt.png', 'clothes-hoodie.png'],
 }
 
 function Avatar({ className = '', options = [0, 0, 0, 0] }: { className?: string; options?: number[] }) {
@@ -111,11 +110,8 @@ function Avatar({ className = '', options = [0, 0, 0, 0] }: { className?: string
 
 function HeroVisual({ options }: { options: number[] }) {
   return <div className={`hero-visual outfit-${options[3]}`}>
-    <img className="hero-base" src={`${A}/hero-full.png`} alt="Your snow leopard hero"/>
-    {options[0] > 0 && <img className={`hero-feature hero-eyes option-${options[0]}`} src={`${A}/${heroFeatureAssets.eyes[options[0]]}`} alt=""/>}
-    {options[1] > 0 && <img className={`hero-feature hero-nose option-${options[1]}`} src={`${A}/${heroFeatureAssets.nose[options[1]]}`} alt=""/>}
-    {options[2] > 0 && <img className={`hero-feature hero-mouth option-${options[2]}`} src={`${A}/${heroFeatureAssets.mouth[options[2]]}`} alt=""/>}
-    {options[3] > 0 && <img className={`hero-clothes clothes-${options[3]} option-${options[3]}`} src={`${A}/${heroFeatureAssets.clothes[options[3]]}`} alt=""/>}
+    <img className="hero-base" src={`${A}/hero-standing.png`} alt="Your snow leopard hero"/>
+    {options[3] > 0 && <img className={`hero-outfit-tint option-${options[3]}`} src={`${A}/hero-standing.png`} alt=""/>}
   </div>
 }
 function Wave({ active = false }: { active?: boolean }) { return <div className={`wave ${active ? 'active' : ''}`}>{Array.from({ length: 29 }, (_, i) => <i key={i} style={{ height: `${14 + (i * 19) % 70}%`, animationDelay: `${-i * 32}ms` }}/>)}</div> }
@@ -225,9 +221,9 @@ function HeroBuilder({ part, options, onOption, onBack, onNext }: { part: number
     ['eyes-1.png','eyes-2.png','eyes-3.png','eyes-4.png','eyes-2.png','eyes-1.png'],
     ['nose-1.png','nose-2.png','nose-3.png','nose-4.png','nose-5.png','nose-6.png'],
     ['mouth-1.png','mouth-2.png','mouth-3.png','mouth-4.png','mouth-5.png','mouth-6.png'],
-    ['clothes-hoodie.png','clothes-shirt.png','clothes-pants.png','clothes-shoes.png','clothes-shirt.png','clothes-hoodie.png'],
+    ['clothes-hoodie.png','clothes-hoodie.png','clothes-hoodie.png','clothes-hoodie.png','clothes-hoodie.png','clothes-hoodie.png'],
   ]
-  return <div className="hero-builder"><Top title="Create your hero" onBack={onBack} step={`${part + 1}/4`}/><h1>{labels[part]}</h1><div className="hero-preview"><div className={`hero-halo tone-${options[3]}`}/><HeroVisual options={options}/></div><div className="custom-tabs">{['eyes-1.png','nose-1.png','mouth-1.png','clothes-hoodie.png'].map((asset, i) => <span className={part === i ? 'active' : ''} key={asset}><img src={`${A}/${asset}`} alt=""/></span>)}</div><div className="custom-grid">{optionSets[part].map((asset, i) => <button className={options[part] === i ? 'selected' : ''} key={`${asset}-${i}`} onClick={() => onOption(i)}><img src={`${A}/${asset}`} alt={`${labels[part]} option ${i + 1}`}/></button>)}</div><div className="builder-actions"><button className="secondary" onClick={onBack}>Back</button><button className="primary" onClick={onNext}>{part === 3 ? 'Continue' : 'Next'}</button></div></div>
+  return <div className="hero-builder"><Top title="Create your hero" onBack={onBack} step={`${part + 1}/4`}/><h1>{labels[part]}</h1><div className={`hero-preview preview-part-${part}`}><div className={`hero-halo tone-${options[3]}`}/>{part < 3 ? <Avatar className="hero-head-avatar" options={options}/> : <HeroVisual options={options}/>}</div><div className="custom-tabs">{['eyes-1.png','nose-1.png','mouth-1.png','clothes-hoodie.png'].map((asset, i) => <span className={part === i ? 'active' : ''} key={asset}><img src={`${A}/${asset}`} alt=""/></span>)}</div><div className="custom-grid">{optionSets[part].map((asset, i) => <button className={options[part] === i ? 'selected' : ''} key={`${asset}-${i}`} onClick={() => onOption(i)}><img className={`preview-part-${part} option-${i}`} src={`${A}/${asset}`} alt={`${labels[part]} option ${i + 1}`}/></button>)}</div><div className="builder-actions"><button className="secondary" onClick={onBack}>Back</button><button className="primary" onClick={onNext}>{part === 3 ? 'Continue' : 'Next'}</button></div></div>
 }
 
 function AppHeader({ subtitle }: { subtitle: string }) { return <header className="app-header"><Avatar/><div><b>Omarito</b><small>{subtitle}</small></div><span className="app-coins"><img src={`${A}/coin.png`} alt=""/> 500</span></header> }
