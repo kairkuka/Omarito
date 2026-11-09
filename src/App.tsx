@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { backendConfigured, loadAppState, saveAppState, type StartingChoice } from './lib/backend'
 import { changeInterfaceLocale, interfaceLocaleOptions, normalizeInterfaceLocale } from './lib/i18n'
 
-type View = 'welcome' | 'language' | 'personalize' | 'starting' | 'level-check' | 'recommendation' | 'starter' | 'intro' | 'hero' | 'feed' | 'journey' | 'world' | 'profile' | 'level' | 'lesson' | 'conversation' | 'edit-profile' | 'language-select' | 'settings' | 'account'
+type View = 'welcome' | 'language' | 'personalize' | 'starting' | 'level-check' | 'recommendation' | 'starter' | 'intro' | 'hero' | 'feed' | 'journey' | 'world' | 'profile' | 'level' | 'lesson' | 'short-lesson' | 'conversation' | 'store' | 'edit-profile' | 'language-select' | 'settings' | 'account'
 type MainView = 'feed' | 'journey' | 'profile'
 type IconName = 'arrow' | 'back' | 'check' | 'close' | 'edit' | 'gear' | 'home' | 'journey' | 'keyboard' | 'mic' | 'pause' | 'play' | 'profile' | 'sound' | 'spark'
 
@@ -24,6 +24,7 @@ type Mission = {
 }
 
 const A = '/assets/figma'
+const SHORT_COMPLETIONS_KEY = 'omalingo.completed-shorts.v1'
 const omaritoShorts = [
   {
     id: 'i-like-vs-id-like',
@@ -32,6 +33,17 @@ const omaritoShorts = [
     captions: '/assets/videos/i-like-vs-id-like.vtt',
     titleKey: 'shorts.likeTitle',
     takeawayKey: 'shorts.likeTakeaway',
+    quiz: 'What does “I’d like a coffee” mean?',
+    answers: ['I want a coffee now.', 'I enjoy coffee in general.', 'I drank coffee yesterday.'],
+    correct: 0,
+    ruleLeft: 'I like + thing',
+    ruleLeftNote: 'a general preference',
+    ruleLeftExample: 'I like coffee.',
+    ruleRight: 'I’d like + thing',
+    ruleRightNote: 'what you want now',
+    ruleRightExample: 'I’d like a coffee, please.',
+    practice: 'Order a drink politely. Use “I’d like”.',
+    model: 'I’d like a cup of tea, please.',
   },
   {
     id: 'say-vs-tell',
@@ -40,8 +52,32 @@ const omaritoShorts = [
     captions: '/assets/videos/say-vs-tell.vtt',
     titleKey: 'shorts.sayTitle',
     takeawayKey: 'shorts.sayTakeaway',
+    quiz: 'Which sentence correctly names the person receiving the information?',
+    answers: ['He told me the news.', 'He said me the news.', 'He told the news.'],
+    correct: 0,
+    ruleLeft: 'say + words',
+    ruleLeftNote: 'focus on what was said',
+    ruleLeftExample: 'He said, “I’m tired.”',
+    ruleRight: 'tell + person',
+    ruleRightNote: 'name who receives it',
+    ruleRightExample: 'He told me he was tired.',
+    practice: 'Write one sentence with “say” and one with “tell”.',
+    model: 'Maya said hello. Then she told me the news.',
   },
 ] as const
+const worlds = [
+  ['NOVA', 'journey.nova'], ['LEXORA', 'journey.lexora'], ['SONARA', 'journey.sonara'], ['VERBIA', 'journey.verbia'],
+  ['DIALOGA', 'journey.dialoga'], ['VIVORA', 'journey.vivora'], ['FLUENTA', 'journey.fluenta'], ['OMNIA', 'journey.omnia'],
+] as const
+
+function readShortCompletions(): number[] {
+  try {
+    const saved = window.localStorage.getItem(SHORT_COMPLETIONS_KEY)
+    return saved ? JSON.parse(saved) as number[] : []
+  } catch {
+    return []
+  }
+}
 const levels = [
   { id: 1, title: 'Find your voice', subtitle: 'Start simple and sound like yourself', color: '#3478ff' },
   { id: 2, title: 'Make it happen', subtitle: 'Suggest, choose and arrange plans', color: '#7b5cff' },
@@ -182,6 +218,10 @@ function App() {
   const [activeLevel, setActiveLevel] = useState(1)
   const [missionId, setMissionId] = useState(1)
   const [lessonStep, setLessonStep] = useState(0)
+  const [shortLessonId, setShortLessonId] = useState(0)
+  const [shortStep, setShortStep] = useState(0)
+  const [shortAnswer, setShortAnswer] = useState<number | null>(null)
+  const [shortCompleted, setShortCompleted] = useState<number[]>(readShortCompletions)
   const [answer, setAnswer] = useState<number | null>(null)
   const [completed, setCompleted] = useState<number[]>([])
   const [recording, setRecording] = useState(false)
@@ -200,6 +240,9 @@ function App() {
   const chunks = useRef<Blob[]>([])
   const audio = useRef<HTMLAudioElement | null>(null)
   const mission = missions[missionId - 1]
+  const accountXp = 500 + completed.length * 50 + shortCompleted.length * 20 + (conversationDone ? 20 : 0)
+  const lingo = 120 + shortCompleted.length * 5 + (conversationDone ? 5 : 0)
+  const dailyDone = Math.min(3, Number(shortCompleted.length > 0) + Number(completed.length > 0) + Number(conversationDone))
 
   useEffect(() => {
     let active = true
@@ -249,6 +292,10 @@ function App() {
   }, [activeLevel, appReady, checkAnswers, completed, conversationDone, goal, heroOptions, language, name, onboardingComplete, practiceReminders, soundEffects, starterAnswer, startingChoice])
 
   useEffect(() => {
+    try { window.localStorage.setItem(SHORT_COMPLETIONS_KEY, JSON.stringify(shortCompleted)) } catch { /* Local rewards must not block learning. */ }
+  }, [shortCompleted])
+
+  useEffect(() => {
     if (!recording) return
     const timer = window.setInterval(() => setSeconds((v) => v + 1), 1000)
     return () => window.clearInterval(timer)
@@ -283,6 +330,13 @@ function App() {
     setAudioPlaying((v) => !v)
   }
   function openMission(id: number) { setMissionId(id); setLessonStep(0); setView('lesson') }
+  function openShortLesson(id: number) {
+    setShortLessonId(id); setShortStep(0); setShortAnswer(null); setTypedText(''); setRecorded(false); setRecording(false); setSeconds(0); setAudioUrl(''); setView('short-lesson')
+  }
+  function finishShortLesson() {
+    setShortCompleted((items) => items.includes(shortLessonId) ? items : [...items, shortLessonId])
+    setView('feed')
+  }
   function finishMission() { setCompleted((items) => items.includes(missionId) ? items : [...items, missionId]); setView('world') }
   function selectLevel(id: number) { setActiveLevel(id); setView('level') }
   function startLevelCheck() { setCheckStep(0); setCheckAnswers([null, null, null, null, null]); setView('level-check') }
@@ -311,10 +365,10 @@ function App() {
         setView(heroReturn)
       }}
     />}
-    {view === 'feed' && <Feed name={name || 'Alex'} completed={completed} onMission={() => openMission(completed.length >= 20 ? 1 : completed.length + 1)} onNav={setView}/>}
-    {view === 'journey' && <Journey completed={completed} onWorld={() => setView('world')} onNav={setView}/>}
+    {view === 'feed' && <Feed name={name || 'Alex'} completed={completed} shortCompleted={shortCompleted} dailyDone={dailyDone} coins={lingo} onShortLesson={openShortLesson} onStore={() => setView('store')} onMission={() => openMission(completed.length >= 20 ? 1 : completed.length + 1)} onNav={setView}/>}
+    {view === 'journey' && <Journey completed={completed} coins={lingo} onWorld={() => setView('world')} onStore={() => setView('store')} onNav={setView}/>}
     {view === 'world' && <WorldOverview completed={completed} onBack={() => setView('journey')} onLevel={selectLevel}/>}
-    {view === 'profile' && <Profile name={name || 'Alex'} language={language} completed={completed} heroOptions={heroOptions} conversationDone={conversationDone} onEditProfile={() => setView('edit-profile')} onLanguage={() => setView('language-select')} onSettings={() => setView('settings')} onEditHero={() => { setHeroPart(0); setHeroReturn('profile'); setView('hero') }} onNav={setView}/>}
+    {view === 'profile' && <Profile name={name || 'Alex'} language={language} completed={completed} shortCompleted={shortCompleted} heroOptions={heroOptions} conversationDone={conversationDone} onEditProfile={() => setView('edit-profile')} onLanguage={() => setView('language-select')} onSettings={() => setView('settings')} onEditHero={() => { setHeroPart(0); setHeroReturn('profile'); setView('hero') }} onNav={setView}/>}
     {view === 'edit-profile' && <EditProfile name={name || 'Alex'} onBack={() => setView('profile')} onSave={(value) => { setName(value); setView('profile') }}/>}
     {view === 'language-select' && <LanguageSelect value={language} onBack={() => setView('profile')} onSave={(value) => { setLanguage(value); setView('profile') }}/>}
     {view === 'settings' && <Settings soundEffects={soundEffects} reminders={practiceReminders} onSound={setSoundEffects} onReminders={setPracticeReminders} onBack={() => setView('profile')} onAccount={() => setView('account')}/>}
@@ -322,6 +376,8 @@ function App() {
     {view === 'level' && <LevelScreen levelId={activeLevel} completed={completed} conversationDone={conversationDone} onBack={() => setView('world')} onMission={openMission} onConversation={() => setView('conversation')}/>}
     {view === 'conversation' && <MentorConversation name={name || 'Alex'} onBack={() => setView('level')} onDone={() => { setConversationDone(true); setView('level') }}/>}
     {view === 'lesson' && <Lesson {...lessonProps}/>}
+    {view === 'short-lesson' && <ShortLesson short={omaritoShorts[shortLessonId]} step={shortStep} answer={shortAnswer} response={typedText} recording={recording} recorded={recorded} seconds={seconds} audioPlaying={audioPlaying} onAnswer={setShortAnswer} onResponse={setTypedText} onRecord={toggleRecording} onPlay={playRecording} onRecordAgain={recordAgain} onBack={() => setView('feed')} onNext={() => { setShortAnswer(null); setShortStep((value) => Math.min(4, value + 1)) }} onFinish={finishShortLesson}/>}
+    {view === 'store' && <Store coins={lingo} xp={accountXp} onBack={() => setView('feed')}/>}
     {exitOpen && <ExitModal onStay={() => setExitOpen(false)} onLeave={() => { setExitOpen(false); setView('feed') }}/>}
   </section></main>
 }
@@ -381,9 +437,9 @@ function HeroBuilder({ part, options, onOption, onBack, onNext }: { part: number
   return <div className="hero-builder"><Top title={t('hero.title')} onBack={onBack} step={`${part + 1}/4`}/><h1>{labels[part]}</h1><div className={`hero-preview preview-part-${part}`}><div className={`hero-halo tone-${options[3]}`}/>{part < 3 ? <Avatar className="hero-head-avatar" options={options}/> : <HeroVisual options={options}/>}</div><div className="custom-tabs">{['eyes-1.png','nose-1.png','mouth-1.png','clothes-hoodie.png'].map((asset, i) => <span className={part === i ? 'active' : ''} key={asset}><img src={`${A}/${asset}`} alt=""/></span>)}</div><div className="custom-grid">{optionSets[part].map((asset, i) => <button className={options[part] === i ? 'selected' : ''} key={`${asset}-${i}`} onClick={() => onOption(i)}><img className={`preview-part-${part} option-${i}`} src={`${A}/${asset}`} alt={t('hero.option', { part: labels[part], number: i + 1 })}/></button>)}</div><div className="builder-actions"><button className="secondary" onClick={onBack}>{t('common.back')}</button><button className="primary" onClick={onNext}>{part === 3 ? t('common.continue') : t('common.next')}</button></div></div>
 }
 
-function AppHeader({ subtitle }: { subtitle: string }) { return <header className="app-header"><Avatar/><div><b>Omarito</b><small>{subtitle}</small></div><span className="app-coins"><img src={`${A}/coin.png`} alt=""/> 500</span></header> }
+function AppHeader({ subtitle, coins, onStore }: { subtitle: string; coins: number; onStore: () => void }) { const { t } = useTranslation(); return <header className="app-header"><Avatar/><div><b>Omarito</b><small>{subtitle}</small></div><button className="app-coins" onClick={onStore} aria-label={t('store.open')}><img src={`${A}/coin.png`} alt=""/> {coins}</button></header> }
 function BottomNav({ active, onNav }: { active: MainView; onNav: (v: View) => void }) { const { t } = useTranslation(); return <nav className="bottom-nav"><button className={active === 'feed' ? 'active' : ''} onClick={() => onNav('feed')}><Icon name="home"/><span>{t('nav.feed')}</span></button><button className={active === 'journey' ? 'active' : ''} onClick={() => onNav('journey')}><Icon name="journey"/><span>{t('nav.journey')}</span></button><button className={active === 'profile' ? 'active' : ''} onClick={() => onNav('profile')}><Icon name="profile"/><span>{t('nav.profile')}</span></button></nav> }
-function Feed({ name, completed, onMission, onNav }: { name: string; completed: number[]; onMission: () => void; onNav: (v: View) => void }) {
+function Feed({ name, completed, shortCompleted, dailyDone, coins, onShortLesson, onStore, onMission, onNav }: { name: string; completed: number[]; shortCompleted: number[]; dailyDone: number; coins: number; onShortLesson: (id: number) => void; onStore: () => void; onMission: () => void; onNav: (v: View) => void }) {
   const { t } = useTranslation()
   const [playing, setPlaying] = useState(false)
   const [videoIndex, setVideoIndex] = useState(0)
@@ -404,7 +460,7 @@ function Feed({ name, completed, onMission, onNav }: { name: string; completed: 
     else video.pause()
   }
 
-  return <div className="app-view feed"><AppHeader subtitle={t('header.storyStarts')}/><div className={`feed-media ${playing ? 'playing' : ''}`}>
+  return <div className="app-view feed"><AppHeader subtitle={t('header.storyStarts')} coins={coins} onStore={onStore}/><div className={`feed-media ${playing ? 'playing' : ''}`}>
     <video key={short.id} ref={videoRef} playsInline preload="metadata" poster={short.poster}
       onPlay={(event) => { if (event.currentTarget.textTracks[0]) event.currentTarget.textTracks[0].mode = 'showing'; setPlaying(true) }}
       onPause={(event) => { if (event.currentTarget.textTracks[0]) event.currentTarget.textTracks[0].mode = 'hidden'; setPlaying(false) }}
@@ -416,14 +472,14 @@ function Feed({ name, completed, onMission, onNav }: { name: string; completed: 
     <button className="big-play" aria-label={playing ? t('feed.pause') : t('feed.play')} onClick={toggleVideo}><Icon name={playing ? 'pause' : 'play'} size={24}/></button>
     <div className="short-copy"><b>{t(short.titleKey)}</b><small>{t(short.takeawayKey)}</small></div>
     <div className="short-picker">{omaritoShorts.map((item, index) => <button className={index === videoIndex ? 'active' : ''} key={item.id} aria-label={t('shorts.open', { number: index + 1 })} onClick={() => setVideoIndex(index)}><i/></button>)}</div>
-  </div><div className="feed-sheet"><span className="kicker">{t('feed.upNext', { number: String(next.id).padStart(2,'0') })}</span><h1>{completed.length ? t('feed.keepGoing', { name }) : t('feed.firstTitle')}</h1><p>{completed.length ? next.title : t('feed.firstDescription')}</p><button className="primary" onClick={onMission}>{completed.length ? t('feed.continue') : t('feed.start')} <Icon name="arrow"/></button></div><BottomNav active="feed" onNav={onNav}/></div>
+  </div><div className="feed-sheet"><div className="daily-loop"><span>{t('feed.dailyPlan')}</span><b>{dailyDone}/3</b><div><i style={{ width: `${dailyDone / 3 * 100}%` }}/></div></div><button className="short-practice" onClick={() => onShortLesson(videoIndex)}><span><Icon name={shortCompleted.includes(videoIndex) ? 'check' : 'spark'} size={15}/></span><div><small>{t('shorts.lesson')}</small><b>{shortCompleted.includes(videoIndex) ? t('shorts.review') : t('shorts.practice')}</b></div><Icon name="arrow" size={17}/></button><span className="kicker">{t('feed.upNext', { number: String(next.id).padStart(2,'0') })}</span><h1>{completed.length ? t('feed.keepGoing', { name }) : t('feed.firstTitle')}</h1><p>{completed.length ? next.title : t('feed.firstDescription')}</p><button className="primary" onClick={onMission}>{completed.length ? t('feed.continue') : t('feed.start')} <Icon name="arrow"/></button></div><BottomNav active="feed" onNav={onNav}/></div>
 }
 
-function Journey({ completed, onWorld, onNav }: { completed: number[]; onWorld: () => void; onNav: (v: View) => void }) { const { t } = useTranslation(); return <div className="app-view journey"><AppHeader subtitle={t('header.mapProgress')}/><div className="view-title"><h1>{t('journey.title')}</h1><p>{t('journey.description')}</p></div><div className="world-orbit"><div className="orbit orbit-a"/><div className="orbit orbit-b"/><div className="orbit orbit-c"/><div className="orbit-center"><img src={`${A}/hero-standing.png`} alt="Omarito"/></div><button className="world-node noma" onClick={onWorld}><span>01</span><b>NOMA</b><small>{completed.length}/20</small></button><button className="world-node world-2" disabled><img src={`${A}/rocket.png`} alt=""/><b>{t('journey.world', { number: 2 })}</b><small>{t('journey.comingSoon')}</small></button><button className="world-node world-3" disabled><span>✦</span><b>{t('journey.world', { number: 3 })}</b><small>{t('journey.locked')}</small></button><button className="world-node world-4" disabled><span>◌</span><b>{t('journey.world', { number: 4 })}</b><small>{t('journey.locked')}</small></button></div><div className="journey-summary"><span>{t('journey.progress')}</span><b>{Math.round(completed.length / 20 * 100)}%</b><div><i style={{ width: `${completed.length / 20 * 100}%` }}/></div><small>{t('journey.missions', { current: completed.length, total: 20 })}</small></div><BottomNav active="journey" onNav={onNav}/></div> }
-function WorldOverview({ completed, onBack, onLevel }: { completed: number[]; onBack: () => void; onLevel: (id: number) => void }) { const { t } = useTranslation(); return <div className="world-screen"><div className="world-hero"><Top title="NOMA" onBack={onBack}/><span className="kicker light">WORLD 01</span><h1>NOMA</h1><p>{t('world.description')}</p><div className="world-progress"><span>{t('world.progress')}</span><b>{completed.length}/20</b><div><i style={{ width: `${completed.length / 20 * 100}%` }}/></div></div></div><section className="level-cards"><h2>{t('world.levels')}</h2>{levels.map((level) => { const done = missions.filter((m) => m.level === level.id && completed.includes(m.id)).length; return <button key={level.id} onClick={() => onLevel(level.id)} style={{ '--level-color': level.color } as CSSProperties}><span>{level.id}</span><div><small>{t('world.level', { number: level.id }).toUpperCase()}</small><b>{level.title}</b><p>{level.subtitle}</p><i><em style={{ width: `${done * 20}%` }}/></i></div><strong>+{[12,18,24,30][level.id - 1]}%</strong><Icon name="arrow" size={18}/></button>})}</section></div> }
+function Journey({ completed, coins, onWorld, onStore, onNav }: { completed: number[]; coins: number; onWorld: () => void; onStore: () => void; onNav: (v: View) => void }) { const { t } = useTranslation(); return <div className="app-view journey"><AppHeader subtitle={t('header.mapProgress')} coins={coins} onStore={onStore}/><div className="view-title"><h1>{t('journey.title')}</h1><p>{t('journey.description')}</p></div><div className="world-path">{worlds.map(([name, descriptionKey], index) => <button className={index === 0 ? 'active' : ''} disabled={index > 0} onClick={index === 0 ? onWorld : undefined} key={name}><span>{String(index + 1).padStart(2, '0')}</span><div><b>{name}</b><small>{t(descriptionKey)}</small></div><strong>{index === 0 ? `${completed.length}/20` : t('journey.locked')}</strong></button>)}</div><div className="journey-summary"><span>{t('journey.progress')}</span><b>{Math.round(completed.length / 20 * 100)}%</b><div><i style={{ width: `${completed.length / 20 * 100}%` }}/></div><small>{t('journey.missions', { current: completed.length, total: 20 })}</small></div><BottomNav active="journey" onNav={onNav}/></div> }
+function WorldOverview({ completed, onBack, onLevel }: { completed: number[]; onBack: () => void; onLevel: (id: number) => void }) { const { t } = useTranslation(); return <div className="world-screen"><div className="world-hero"><Top title="NOVA" onBack={onBack}/><span className="kicker light">WORLD 01</span><h1>NOVA</h1><p>{t('world.description')}</p><div className="world-progress"><span>{t('world.progress')}</span><b>{completed.length}/20</b><div><i style={{ width: `${completed.length / 20 * 100}%` }}/></div></div></div><section className="level-cards"><h2>{t('world.levels')}</h2>{levels.map((level) => { const done = missions.filter((m) => m.level === level.id && completed.includes(m.id)).length; return <button key={level.id} onClick={() => onLevel(level.id)} style={{ '--level-color': level.color } as CSSProperties}><span>{level.id}</span><div><small>{t('world.level', { number: level.id }).toUpperCase()}</small><b>{level.title}</b><p>{level.subtitle}</p><i><em style={{ width: `${done * 20}%` }}/></i></div><strong>+{[12,18,24,30][level.id - 1]}%</strong><Icon name="arrow" size={18}/></button>})}</section></div> }
 function LevelScreen({ levelId, completed, conversationDone, onBack, onMission, onConversation }: { levelId: number; completed: number[]; conversationDone: boolean; onBack: () => void; onMission: (id: number) => void; onConversation: () => void }) { const { t } = useTranslation(); const level = levels[levelId - 1]; const items = missions.filter((m) => m.level === levelId); const completeCount = items.filter((m) => completed.includes(m.id)).length; const medals = ['badge-bronze.png','badge-silver.png','badge-gold.png','badge-legend.png']; const medalLabels = [t('world.bronze'), t('world.silver'), t('world.gold'), t('world.legend')]; return <div className="level-screen"><div className="level-hero" style={{ '--level-color': level.color } as CSSProperties}><Top title={t('world.level', { number: level.id })} onBack={onBack}/><span className="kicker light">{t('world.level', { number: level.id }).toUpperCase()}</span><h1>{level.title}</h1><p>{level.subtitle}</p><div className="level-progress-label"><span>{t('world.levelProgress')}</span><b>{1000 + completeCount * 160 + (conversationDone ? 20 : 0)} / 1800</b></div><div className="level-progress"><i style={{ width: `${Math.min(100, 55 + completeCount * 9 + (conversationDone ? 2 : 0))}%` }}/></div><div className="medals">{medalLabels.map((label, i) => <span key={label}><img src={`${A}/${medals[i]}`} alt=""/><small>{label}</small></span>)}</div></div><div className="mission-list">{levelId === 1 && <button className="mentor-card" onClick={onConversation}><img src={`${A}/hero-standing.png`} alt="Omarito"/><div><small>{t('world.speak')}</small><b>{t('world.introduce')}</b><p>{t('world.introduceDescription')}</p></div><strong>{conversationDone ? t('world.done') : t('world.startTalking')}</strong></button>}<h2>{t('world.missions')} <small>{completeCount}/5</small></h2>{items.map((item, i) => { const done = completed.includes(item.id); const percent = done ? 100 : [64,52,40,28,12][i]; return <button key={item.id} onClick={() => onMission(item.id)}><span className={done ? 'done' : ''}>{done ? <Icon name="check" size={15}/> : String(i + 1).padStart(2,'0')}</span><div><b>{item.title}</b><small>{t('world.skills')}</small></div><em>{percent}%</em><strong>+{[12,15,18,21,24][i]}%</strong></button>})}</div></div> }
 
-function Profile({ name, language, completed, heroOptions, conversationDone, onEditProfile, onLanguage, onSettings, onEditHero, onNav }: { name: string; language: string; completed: number[]; heroOptions: number[]; conversationDone: boolean; onEditProfile: () => void; onLanguage: () => void; onSettings: () => void; onEditHero: () => void; onNav: (v: View) => void }) { const { t } = useTranslation(); const selectedLanguage = languages.find(([, label]) => label === language) || languages[0]; const xp = 500 + completed.length * 50 + (conversationDone ? 20 : 0); const lingo = 120 + (conversationDone ? 5 : 0); return <div className="app-view profile"><header className="profile-top"><span/><h1>{t('profile.title')}</h1><button aria-label={t('profile.settings')} onClick={onSettings}><Icon name="gear"/></button></header><div className="profile-head"><Avatar options={heroOptions}/><div><h2>{name} <button onClick={onEditProfile} aria-label={t('profile.edit')}><Icon name="edit" size={15}/></button></h2><p>{t('profile.learningDaily')}</p></div></div><div className="account-progress"><span>{t('profile.accountLevel')}</span><b>{t('profile.level', { number: 3 })}</b><div><i style={{ width: `${Math.min(100, xp / 8)}%` }}/></div><small>{xp} / 800 XP</small></div><div className="stat-row"><span><b>{xp}</b><small>XP</small></span><span><b>{lingo}</b><small>Lingo</small></span><span><b>3</b><small>{t('profile.dayStreak')}</small></span></div><button className="learning-card learning-button" onClick={onLanguage}><span>{t('profile.learning')}</span><h2><img src={`${A}/${selectedLanguage[0]}`} alt=""/> {t(`learningLanguages.${language}`)}<Icon name="arrow" size={16}/></h2><p>{t('profile.beginner')}</p><hr/><div className="learning-world"><span>NOVA</span><b>{t('profile.worldProgress')}</b></div><div><i style={{ width: '40%' }}/></div></button><button className="edit-hero-wide" onClick={onEditHero}><Avatar options={heroOptions}/>{t('profile.customize')} <Icon name="arrow"/></button><BottomNav active="profile" onNav={onNav}/></div> }
+function Profile({ name, language, completed, shortCompleted, heroOptions, conversationDone, onEditProfile, onLanguage, onSettings, onEditHero, onNav }: { name: string; language: string; completed: number[]; shortCompleted: number[]; heroOptions: number[]; conversationDone: boolean; onEditProfile: () => void; onLanguage: () => void; onSettings: () => void; onEditHero: () => void; onNav: (v: View) => void }) { const { t } = useTranslation(); const selectedLanguage = languages.find(([, label]) => label === language) || languages[0]; const xp = 500 + completed.length * 50 + shortCompleted.length * 20 + (conversationDone ? 20 : 0); const lingo = 120 + shortCompleted.length * 5 + (conversationDone ? 5 : 0); const rank = ['CUB', 'SCOUT', 'EXPLORER', 'VOYAGER', 'GUARDIAN', 'LEGEND'][Math.min(5, Math.floor(Math.max(0, xp - 500) / 250))]; return <div className="app-view profile"><header className="profile-top"><span/><h1>{t('profile.title')}</h1><button aria-label={t('profile.settings')} onClick={onSettings}><Icon name="gear"/></button></header><div className="profile-head"><Avatar options={heroOptions}/><div><h2>{name} <button onClick={onEditProfile} aria-label={t('profile.edit')}><Icon name="edit" size={15}/></button></h2><p>{t('profile.learningDaily')}</p></div><strong className="hero-rank">{rank}</strong></div><div className="account-progress"><span>{t('profile.accountLevel')}</span><b>{t('profile.level', { number: 3 })}</b><div><i style={{ width: `${Math.min(100, xp / 8)}%` }}/></div><small>{xp} / 800 XP</small></div><div className="stat-row"><span><b>{xp}</b><small>XP</small></span><span><b>{lingo}</b><small>Lingo</small></span><span><b>3</b><small>{t('profile.dayStreak')}</small></span></div><button className="learning-card learning-button" onClick={onLanguage}><span>{t('profile.learning')}</span><h2><img src={`${A}/${selectedLanguage[0]}`} alt=""/> {t(`learningLanguages.${language}`)}<Icon name="arrow" size={16}/></h2><p>{t('profile.beginner')}</p><hr/><div className="learning-world"><span>NOVA</span><b>{t('profile.worldProgress')}</b></div><div><i style={{ width: '40%' }}/></div></button><button className="edit-hero-wide" onClick={onEditHero}><Avatar options={heroOptions}/>{t('profile.customize')} <Icon name="arrow"/></button><BottomNav active="profile" onNav={onNav}/></div> }
 
 function EditProfile({ name, onBack, onSave }: { name: string; onBack: () => void; onSave: (value: string) => void }) {
   const { t } = useTranslation()
@@ -507,6 +563,52 @@ function MentorConversation({ name, onBack, onDone }: { name: string; onBack: ()
 }
 
 function MentorBubble({ label, text, mine = false, correction = false, onReplay }: { label: string; text: string; mine?: boolean; correction?: boolean; onReplay: () => void }) { const { t } = useTranslation(); return <div className={`mentor-message ${mine ? 'mine' : ''} ${correction ? 'correction' : ''}`}><small>{label}</small><p>{text}</p><button onClick={onReplay}><Icon name="sound" size={13}/> {t(correction ? 'mentor.replayPhrase' : 'mentor.replay')}</button></div> }
+
+type ShortLessonData = typeof omaritoShorts[number]
+type ShortLessonProps = {
+  short: ShortLessonData
+  step: number
+  answer: number | null
+  response: string
+  recording: boolean
+  recorded: boolean
+  seconds: number
+  audioPlaying: boolean
+  onAnswer: (value: number) => void
+  onResponse: (value: string) => void
+  onRecord: () => void
+  onPlay: () => void
+  onRecordAgain: () => void
+  onBack: () => void
+  onNext: () => void
+  onFinish: () => void
+}
+
+function ShortLesson({ short, step, answer, response, recording, recorded, seconds, audioPlaying, onAnswer, onResponse, onRecord, onPlay, onRecordAgain, onBack, onNext, onFinish }: ShortLessonProps) {
+  const { t } = useTranslation()
+  return <div className="short-lesson"><header className="short-lesson-top"><button onClick={onBack} aria-label={t('common.close')}><Icon name="close"/></button><div><i style={{ width: `${(step + 1) / 5 * 100}%` }}/></div><span>{step + 1}/5</span></header>
+    {step === 0 && <div className="short-watch"><video controls playsInline preload="metadata" poster={short.poster}><source src={short.source} type="video/mp4"/><track default kind="captions" src={short.captions} srcLang="en" label="English & Russian"/></video><div><span className="kicker">{t('shortLesson.watch')}</span><h1>{t(short.titleKey)}</h1><p>{t('shortLesson.watchDescription')}</p><button className="primary" onClick={onNext}>{t('shortLesson.start')} <Icon name="arrow"/></button></div></div>}
+    {step === 1 && <div className="short-quiz"><span className="kicker">{t('shortLesson.check')}</span><h1>{short.quiz}</h1><div className="short-quote"><Icon name="sound"/><span>{t(short.takeawayKey)}</span></div>{short.answers.map((choice, index) => <Answer key={choice} label={choice} state={answer === index ? index === short.correct ? 'right' : 'wrong' : answer !== null ? 'dim' : ''} onClick={() => onAnswer(index)}/>)}{answer !== null && <div className={`lesson-feedback ${answer === short.correct ? 'good' : 'bad'}`}><Icon name={answer === short.correct ? 'check' : 'sound'}/><div><b>{answer === short.correct ? t('shortLesson.correct') : t('lesson.tryAgain')}</b><p>{answer === short.correct ? t('shortLesson.correctDescription') : t('shortLesson.tryDescription')}</p></div></div>}<button className="primary short-foot" disabled={answer !== short.correct} onClick={onNext}>{t('common.continue')}</button></div>}
+    {step === 2 && <div className="short-rule"><span className="kicker">{t('shortLesson.rule')}</span><h1>{t('shortLesson.pattern')}</h1><div className="rule-compare"><article><strong>{short.ruleLeft}</strong><small>{short.ruleLeftNote}</small><p>{short.ruleLeftExample}</p></article><article><strong>{short.ruleRight}</strong><small>{short.ruleRightNote}</small><p>{short.ruleRightExample}</p></article></div><div className="memory-line"><Icon name="spark"/><p>{t(short.takeawayKey)}</p></div><button className="primary short-foot" onClick={onNext}>{t('shortLesson.practice')} <Icon name="arrow"/></button></div>}
+    {step === 3 && <div className="short-do"><span className="kicker">{t('shortLesson.yourTurn')}</span><h1>{short.practice}</h1><textarea value={response} onChange={(event) => onResponse(event.target.value)} maxLength={220} placeholder={t('shortLesson.placeholder')}/><div className="or-line"><span>{t('shortLesson.orSpeak')}</span></div>{recorded ? <div className="record-review"><button onClick={onPlay}><Icon name={audioPlaying ? 'pause' : 'play'}/></button><Wave active={audioPlaying}/><span>0:{String(Math.max(seconds, 2)).padStart(2, '0')}</span></div> : <button className={`short-record ${recording ? 'recording' : ''}`} onClick={onRecord}><Icon name={recording ? 'pause' : 'mic'} size={24}/><span>{recording ? `${seconds}s · ${t('lesson.tapStop')}` : t('shortLesson.record')}</span></button>}{recorded && <button className="record-again" onClick={onRecordAgain}>{t('lesson.recordAgain')}</button>}<button className="primary short-foot" disabled={!response.trim() && !recorded} onClick={onNext}>{t('shortLesson.review')}</button></div>}
+    {step === 4 && <div className="short-result"><div className="confetti">{Array.from({ length: 24 }, (_, index) => <i key={index} style={{ '--i': index } as CSSProperties}/>)}</div><img src={`${A}/badge-gold.png`} alt=""/><span className="kicker">{t('shortLesson.complete')}</span><h1>{t('shortLesson.resultTitle')}</h1><div className="model-answer"><small>{t('shortLesson.model')}</small><p>{short.model}</p></div><div className="reward-row"><span>⭐ +20 XP</span><span>🪙 +5 Lingo</span></div><button className="primary" onClick={onFinish}>{t('shortLesson.collect')}</button></div>}
+  </div>
+}
+
+function Store({ coins, xp, onBack }: { coins: number; xp: number; onBack: () => void }) {
+  const { t } = useTranslation()
+  const [notice, setNotice] = useState('')
+  const products = [
+    ['🧥', 'store.characterShop', 'store.characterShopDescription'],
+    ['🎟️', 'store.seasonPass', 'store.seasonPassDescription'],
+    ['🎙️', 'store.aiPacks', 'store.aiPacksDescription'],
+    ['📚', 'store.courses', 'store.coursesDescription'],
+    ['🎬', 'store.experience', 'store.experienceDescription'],
+    ['👨‍👩‍👧', 'store.family', 'store.familyDescription'],
+  ] as const
+  function preview() { setNotice(t('store.previewNotice')) }
+  return <div className="store-screen"><div className="store-hero"><Top title={t('store.title')} onBack={onBack}/><span className="kicker light">OMALINGO MEMBERSHIP</span><h1>{t('store.learnEarn')}</h1><p>{t('store.description')}</p><div className="store-wallet"><span><b>{coins}</b><small>Lingo Coins</small></span><span><b>2</b><small>Tickets</small></span><span><b>{xp}</b><small>XP</small></span></div></div><section className="subscription-card"><small>{t('store.trial')}</small><h2>{t('store.fullAccess')}</h2><div><button onClick={preview}><b>$1</b><span>{t('store.month')}</span></button><button className="featured" onClick={preview}><em>{t('store.best')}</em><b>$10</b><span>{t('store.year')}</span></button></div><p>{t('store.subscriptionIncludes')}</p></section>{notice && <button className="store-notice" onClick={() => setNotice('')}><Icon name="spark"/><span>{notice}</span><Icon name="close" size={14}/></button>}<section className="store-products"><h2>{t('store.ecosystem')}</h2><div>{products.map(([icon, titleKey, descriptionKey]) => <button key={titleKey} onClick={preview}><span>{icon}</span><b>{t(titleKey)}</b><small>{t(descriptionKey)}</small><em>{t('store.preview')}</em></button>)}</div></section></div>
+}
 
 type LessonProps = { mission: Mission; step: number; answer: number | null; onAnswer: (v: number) => void; recording: boolean; recorded: boolean; seconds: number; typed: boolean; typedText: string; selfChecks: boolean[]; audioPlaying: boolean; onRecord: () => void; onRecordAgain: () => void; onPlay: () => void; onTyped: () => void; onText: (v: string) => void; onCheck: (i: number) => void; onExit: () => void; onNext: () => void; onFinish: () => void; onFeed: () => void }
 
