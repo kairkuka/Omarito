@@ -98,6 +98,15 @@
     "play": "Play video preview",
     "pause": "Pause video preview"
   },
+  "shorts": {
+    "badge": "OMARITO SHORTS",
+    "counter": "{{current}} / {{total}}",
+    "open": "Open short lesson {{number}}",
+    "likeTitle": "I like or I’d like?",
+    "likeTakeaway": "A general preference versus what you want right now.",
+    "sayTitle": "Say or tell?",
+    "sayTakeaway": "Say something. Tell someone."
+  },
   "journey": {
     "title": "Your journey",
     "description": "Explore worlds. Build real-life language skills.",

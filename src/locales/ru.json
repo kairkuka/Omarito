@@ -98,6 +98,15 @@
     "play": "Запустить видео",
     "pause": "Поставить видео на паузу"
   },
+  "shorts": {
+    "badge": "МИКРОУРОКИ OMARITO",
+    "counter": "{{current}} / {{total}}",
+    "open": "Открыть микроурок {{number}}",
+    "likeTitle": "I like или I’d like?",
+    "likeTakeaway": "Общее предпочтение или желание прямо сейчас.",
+    "sayTitle": "Say или tell?",
+    "sayTakeaway": "Say something. Tell someone."
+  },
   "journey": {
     "title": "Ваш путь",
     "description": "Исследуйте миры и развивайте навыки для реального общения.",

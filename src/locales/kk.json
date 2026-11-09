@@ -98,6 +98,15 @@
     "play": "Бейнені ойнату",
     "pause": "Бейнені кідірту"
   },
+  "shorts": {
+    "badge": "OMARITO ҚЫСҚА САБАҚТАРЫ",
+    "counter": "{{current}} / {{total}}",
+    "open": "{{number}}-қысқа сабақты ашу",
+    "likeTitle": "I like әлде I’d like?",
+    "likeTakeaway": "Жалпы талғам немесе дәл қазір қалаған нәрсе.",
+    "sayTitle": "Say әлде tell?",
+    "sayTakeaway": "Say something. Tell someone."
+  },
   "journey": {
     "title": "Сіздің саяхатыңыз",
     "description": "Әлемдерді зерттеп, күнделікті өмірге қажетті тілдік дағдыларды дамытыңыз.",

@@ -24,6 +24,24 @@ type Mission = {
 }
 
 const A = '/assets/figma'
+const omaritoShorts = [
+  {
+    id: 'i-like-vs-id-like',
+    source: '/assets/videos/i-like-vs-id-like.mp4',
+    poster: '/assets/videos/i-like-vs-id-like.jpg',
+    captions: '/assets/videos/i-like-vs-id-like.vtt',
+    titleKey: 'shorts.likeTitle',
+    takeawayKey: 'shorts.likeTakeaway',
+  },
+  {
+    id: 'say-vs-tell',
+    source: '/assets/videos/say-vs-tell.mp4',
+    poster: '/assets/videos/say-vs-tell.jpg',
+    captions: '/assets/videos/say-vs-tell.vtt',
+    titleKey: 'shorts.sayTitle',
+    takeawayKey: 'shorts.sayTakeaway',
+  },
+] as const
 const levels = [
   { id: 1, title: 'Find your voice', subtitle: 'Start simple and sound like yourself', color: '#3478ff' },
   { id: 2, title: 'Make it happen', subtitle: 'Suggest, choose and arrange plans', color: '#7b5cff' },
@@ -368,8 +386,37 @@ function BottomNav({ active, onNav }: { active: MainView; onNav: (v: View) => vo
 function Feed({ name, completed, onMission, onNav }: { name: string; completed: number[]; onMission: () => void; onNav: (v: View) => void }) {
   const { t } = useTranslation()
   const [playing, setPlaying] = useState(false)
+  const [videoIndex, setVideoIndex] = useState(0)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const next = missions[Math.min(completed.length, 19)]
-  return <div className="app-view feed"><AppHeader subtitle={t('header.storyStarts')}/><div className={`feed-media ${playing ? 'playing' : ''}`}><img src={`${A}/actor-scene.png`} alt="Omarito"/><button className="big-play" aria-label={playing ? t('feed.pause') : t('feed.play')} onClick={() => setPlaying((value) => !value)}><Icon name={playing ? 'pause' : 'play'} size={24}/></button><div className="social"><span>♡<small>1.2K</small></span><span>◌<small>489</small></span></div></div><div className="feed-sheet"><span className="kicker">{t('feed.upNext', { number: String(next.id).padStart(2,'0') })}</span><h1>{completed.length ? t('feed.keepGoing', { name }) : t('feed.firstTitle')}</h1><p>{completed.length ? next.title : t('feed.firstDescription')}</p><button className="primary" onClick={onMission}>{completed.length ? t('feed.continue') : t('feed.start')} <Icon name="arrow"/></button></div><BottomNav active="feed" onNav={onNav}/></div>
+  const short = omaritoShorts[videoIndex]
+
+  useEffect(() => {
+    videoRef.current?.pause()
+    videoRef.current?.load()
+    setPlaying(false)
+  }, [videoIndex])
+
+  function toggleVideo() {
+    const video = videoRef.current
+    if (!video) return
+    if (video.paused) void video.play().catch(() => setPlaying(false))
+    else video.pause()
+  }
+
+  return <div className="app-view feed"><AppHeader subtitle={t('header.storyStarts')}/><div className={`feed-media ${playing ? 'playing' : ''}`}>
+    <video key={short.id} ref={videoRef} playsInline preload="metadata" poster={short.poster}
+      onPlay={(event) => { if (event.currentTarget.textTracks[0]) event.currentTarget.textTracks[0].mode = 'showing'; setPlaying(true) }}
+      onPause={(event) => { if (event.currentTarget.textTracks[0]) event.currentTarget.textTracks[0].mode = 'hidden'; setPlaying(false) }}
+      onEnded={(event) => { if (event.currentTarget.textTracks[0]) event.currentTarget.textTracks[0].mode = 'hidden'; setPlaying(false) }}>
+      <source src={short.source} type="video/mp4"/>
+      <track kind="captions" src={short.captions} srcLang="en" label="English & Russian"/>
+    </video>
+    <div className="short-top"><span><Icon name="spark" size={14}/> {t('shorts.badge')}</span><small>{t('shorts.counter', { current: videoIndex + 1, total: omaritoShorts.length })}</small></div>
+    <button className="big-play" aria-label={playing ? t('feed.pause') : t('feed.play')} onClick={toggleVideo}><Icon name={playing ? 'pause' : 'play'} size={24}/></button>
+    <div className="short-copy"><b>{t(short.titleKey)}</b><small>{t(short.takeawayKey)}</small></div>
+    <div className="short-picker">{omaritoShorts.map((item, index) => <button className={index === videoIndex ? 'active' : ''} key={item.id} aria-label={t('shorts.open', { number: index + 1 })} onClick={() => setVideoIndex(index)}><i/></button>)}</div>
+  </div><div className="feed-sheet"><span className="kicker">{t('feed.upNext', { number: String(next.id).padStart(2,'0') })}</span><h1>{completed.length ? t('feed.keepGoing', { name }) : t('feed.firstTitle')}</h1><p>{completed.length ? next.title : t('feed.firstDescription')}</p><button className="primary" onClick={onMission}>{completed.length ? t('feed.continue') : t('feed.start')} <Icon name="arrow"/></button></div><BottomNav active="feed" onNav={onNav}/></div>
 }
 
 function Journey({ completed, onWorld, onNav }: { completed: number[]; onWorld: () => void; onNav: (v: View) => void }) { const { t } = useTranslation(); return <div className="app-view journey"><AppHeader subtitle={t('header.mapProgress')}/><div className="view-title"><h1>{t('journey.title')}</h1><p>{t('journey.description')}</p></div><div className="world-orbit"><div className="orbit orbit-a"/><div className="orbit orbit-b"/><div className="orbit orbit-c"/><div className="orbit-center"><img src={`${A}/hero-standing.png`} alt="Omarito"/></div><button className="world-node noma" onClick={onWorld}><span>01</span><b>NOMA</b><small>{completed.length}/20</small></button><button className="world-node world-2" disabled><img src={`${A}/rocket.png`} alt=""/><b>{t('journey.world', { number: 2 })}</b><small>{t('journey.comingSoon')}</small></button><button className="world-node world-3" disabled><span>✦</span><b>{t('journey.world', { number: 3 })}</b><small>{t('journey.locked')}</small></button><button className="world-node world-4" disabled><span>◌</span><b>{t('journey.world', { number: 4 })}</b><small>{t('journey.locked')}</small></button></div><div className="journey-summary"><span>{t('journey.progress')}</span><b>{Math.round(completed.length / 20 * 100)}%</b><div><i style={{ width: `${completed.length / 20 * 100}%` }}/></div><small>{t('journey.missions', { current: completed.length, total: 20 })}</small></div><BottomNav active="journey" onNav={onNav}/></div> }
