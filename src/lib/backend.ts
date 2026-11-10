@@ -1,4 +1,4 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type StartingChoice = 'scratch' | 'check' | ''
 
@@ -25,15 +25,23 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim()
 
 export const backendConfigured = Boolean(supabaseUrl && supabaseKey)
 
-const supabase: SupabaseClient | null = supabaseUrl && supabaseKey
-  ? createClient(supabaseUrl, supabaseKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: false,
-      },
-    })
-  : null
+const previewOnly = import.meta.env.DEV && new URLSearchParams(window.location.search).has('design-review')
+let supabasePromise: Promise<SupabaseClient | null> | null = null
+
+function getSupabase(): Promise<SupabaseClient | null> {
+  if (!supabasePromise) {
+    supabasePromise = supabaseUrl && supabaseKey && !previewOnly
+      ? import('@supabase/supabase-js').then(({ createClient }) => createClient(supabaseUrl, supabaseKey, {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: false,
+          },
+        }))
+      : Promise.resolve(null)
+  }
+  return supabasePromise
+}
 
 let userIdPromise: Promise<string | null> | null = null
 let loadStatePromise: Promise<AppState | null> | null = null
@@ -112,6 +120,7 @@ function toRow(userId: string, state: AppState) {
 }
 
 async function resolveUserId(): Promise<string | null> {
+  const supabase = await getSupabase()
   if (!supabase) return null
 
   const { data: sessionData } = await supabase.auth.getSession()
@@ -134,6 +143,7 @@ function getUserId(): Promise<string | null> {
 
 async function resolveAppState(): Promise<AppState | null> {
   const local = readLocalState()
+  const supabase = await getSupabase()
   if (!supabase) return local
 
   try {
@@ -178,6 +188,7 @@ export function loadAppState(): Promise<AppState | null> {
 export async function saveAppState(state: Omit<AppState, 'updatedAt'>): Promise<void> {
   const snapshot: AppState = { ...state, updatedAt: new Date().toISOString() }
   writeLocalState(snapshot)
+  const supabase = await getSupabase()
   if (!supabase) return
 
   try {

@@ -21,6 +21,10 @@ export function normalizeInterfaceLocale(value?: string | null): InterfaceLocale
 }
 
 function initialLocale(): InterfaceLocale {
+  if (import.meta.env.DEV) {
+    const params = new URLSearchParams(window.location.search)
+    if (params.has('design-review') && params.has('locale')) return normalizeInterfaceLocale(params.get('locale'))
+  }
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
     if (stored) return normalizeInterfaceLocale(stored)

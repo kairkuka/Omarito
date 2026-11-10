@@ -9,9 +9,13 @@
     "preview": "vite preview",
     "ios:sync": "pnpm run build && cap sync ios",
     "ios:open": "cap open ios",
-    "ios:build": "pnpm run ios:sync && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build"
+    "ios:build": "pnpm run ios:sync && xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build",
+    "android:sync": "pnpm run build && cap sync android",
+    "android:open": "cap open android",
+    "android:build": "pnpm run android:sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
     "@capacitor/core": "^8.6.0",
     "@capacitor/ios": "^8.6.0",
     "@supabase/supabase-js": "2.119.0",

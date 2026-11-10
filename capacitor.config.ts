@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.kairkuka.omalingo',
   appName: 'Omalingo',
   webDir: 'dist',
-  backgroundColor: '#061027',
+  backgroundColor: '#f6f8fc',
   loggingBehavior: 'debug'
 };
 
